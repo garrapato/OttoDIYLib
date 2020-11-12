@@ -1,0 +1,7 @@
+.DS_Store
+.idea
+OttoPLUS_GARRAX
+cmake-build-debug
+*.hex
+compile.sh
+build

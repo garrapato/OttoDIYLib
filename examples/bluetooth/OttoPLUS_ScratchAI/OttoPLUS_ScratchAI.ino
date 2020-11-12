@@ -18,6 +18,7 @@
 #include <EEPROM.h>
 // NEOPIXEL LED PINs //////////////////////////////////////////////////////////////////////////////
 #include <Adafruit_NeoPixel.h>
+#include "Adafruit_LEDBackpack.h"
 #define LED_PIN   6
 #define LED_COUNT 1
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
@@ -43,14 +44,14 @@ RIGHT FOOT 5 |---     ---| LEFT FOOT 4
 #define PIN_Trigger  8  //TRIGGER pin (8)
 #define PIN_Echo     9  //ECHO pin (9)
 // BUZZER PIN //////////////////////////////////////////////////////////////////////////////
-#define PIN_Buzzer  13 //BUZZER pin (10)
+#define PIN_Buzzer  13 //BUZZER pin (13)
 // SOUND SENSOR PIN //////////////////////////////////////////////////////////////////////////
 #define PIN_NoiseSensor A6  //SOUND SENSOR   ANALOG pin (A6)
 // LED MATRIX PINs //////////////////////////////////////////////////////////////////////////
 #define DIN_PIN    A3   //DIN pin (A3)
 #define CS_PIN     A2   //CS pin (A2)
 #define CLK_PIN    A1   //CLK pin (A1)
-#define LED_DIRECTION  1// LED MATRIX CONNECTOR position (orientation) 1 = top 2 = bottom 3 = left 4 = right  DEFAULT = 1
+#define LED_DIRECTION  4// LED MATRIX CONNECTOR position (orientation) 1 = top 2 = bottom 3 = left 4 = right  DEFAULT = 1
 // BATTERY SENSE PIN //////////////////////////////////////////////////////////////////////////
 boolean BATTcheck = false;    // SET TO FALSE IF NOT USING THIS OPTION
 #define PIN_Battery   A7  //3v7 BATTERY MONITOR   ANALOG pin (A7)
