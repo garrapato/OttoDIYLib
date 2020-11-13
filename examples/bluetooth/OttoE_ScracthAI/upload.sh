@@ -2,7 +2,7 @@
 BOARD=atmega328old
 PORT=/dev/cu.wchusbserial14110
 #PORT=/dev/cu.wchusbserial14310
-SCKETCH=OttoPLUS_ScratchAI
+SCKETCH=OttoE_ScratchAI
 
 #echo "Compiling..."
 #arduino-cli compile -v --fqbn arduino:avr:nano:cpu=$BOARD ${SCKETCH}.ino

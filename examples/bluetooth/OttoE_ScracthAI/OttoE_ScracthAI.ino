@@ -52,7 +52,7 @@ full_bmp[] =  {   B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B1
                -------- 
                ||     ||
 RIGHT FOOT 5 |---     ---| LEFT FOOT 4    
-*/ 
+*/
 #define DIN_PIN A3
 #define CS_PIN A2
 #define CLK_PIN A1
@@ -74,13 +74,13 @@ bool confirmedConnected = false;
 ///////////////////////////////////////////////////////////////////
 void setup(){
   Serial.begin(9600);
-  BTserial.begin(9600);   
-  pinMode(statePin, INPUT);  
+  BTserial.begin(9600);
+  pinMode(statePin, INPUT);
   Otto.initMATRIX( DIN_PIN, CS_PIN, CLK_PIN, LED_DIRECTION);
   Otto.init(PIN_YL, PIN_YR, PIN_RL, PIN_RR, true, A6, PIN_Buzzer, PIN_Trigger, PIN_Echo);
   ematrix.begin(0x70);  // pass in the address
   Otto.matrixIntensity(1);// set up Matrix display intensity
-  //Setup callbacks for SerialCommand commands 
+  //Setup callbacks for SerialCommand commands
   SCmd.addCommand("S", receiveStop);      //  sendAck & sendFinalAck
   SCmd.addCommand("L", receiveLED);       //  sendAck & sendFinalAck
   SCmd.addCommand("T", recieveBuzzer);    //  sendAck & sendFinalAck
@@ -89,7 +89,7 @@ void setup(){
   SCmd.addCommand("K", receiveSing);      //  sendAck & sendFinalAck
   SCmd.addCommand("C", receiveTrims);     //  sendAck & sendFinalAck
   SCmd.addCommand("G", receiveServo);     //  sendAck & sendFinalAck
-  SCmd.addCommand("B", requestBattery);   // 
+  SCmd.addCommand("B", requestBattery);   //
   SCmd.addCommand("I", requestProgramId);
   SCmd.addDefaultHandler(receiveStop);
   //Otto wake up!
@@ -112,9 +112,9 @@ void setup(){
 void loop() {
   checkIfConnected();
         SCmd.readSerial();    //If Otto is moving yet
-        if (Otto.getRestState()==false){  
+        if (Otto.getRestState()==false){
           move(moveId);
-        }  
+        }
     }
 ///////////////////////////////////////////////////////////////////
 //-- Functions --------------------------------------------------//
@@ -127,7 +127,7 @@ void receiveStop(){
 }
 
 //-- Function to receive LED commands
-void receiveLED(){  
+void receiveLED(){
     sendAck();    //sendAck & stop if necessary
     Otto.home();  //Examples of receiveLED Bluetooth commands
     //L 000000001000010100100011000000000
@@ -150,22 +150,22 @@ void receiveLED(){
 
 //-- Function to receive buzzer commands
 void recieveBuzzer(){
-  
+
     //sendAck & stop if necessary
     sendAck();
-    Otto.home(); 
+    Otto.home();
 
-    bool error = false; 
+    bool error = false;
     int frec;
-    int duration; 
-    char *arg; 
-    
-    arg = SCmd.next(); 
-    if (arg != NULL) { frec=atoi(arg); }    // Converts a char string to an integer   
+    int duration;
+    char *arg;
+
+    arg = SCmd.next();
+    if (arg != NULL) { frec=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
-    
-    arg = SCmd.next(); 
-    if (arg != NULL) { duration=atoi(arg); } // Converts a char string to an integer  
+
+    arg = SCmd.next();
+    if (arg != NULL) { duration=atoi(arg); } // Converts a char string to an integer
     else {error=true;}
 
     if(error==true){
@@ -174,9 +174,9 @@ void recieveBuzzer(){
       delay(2000);
       Otto.clearMouth();
 
-    }else{ 
+    }else{
 
-      Otto._tone(frec, duration, 1);   
+      Otto._tone(frec, duration, 1);
     }
 
     sendFinalAck();
@@ -184,11 +184,11 @@ void recieveBuzzer(){
 }
 
 //-- Function to receive TRims commands
-void receiveTrims(){  
+void receiveTrims(){
 
     //sendAck & stop if necessary
     sendAck();
-    Otto.home(); 
+    Otto.home();
 
     int trim_YL,trim_YR,trim_RL,trim_RR;
 
@@ -199,21 +199,21 @@ void receiveTrims(){
     bool error = false;
     char *arg;
     arg=SCmd.next();
-    if (arg != NULL) { trim_YL=atoi(arg); }    // Converts a char string to an integer   
+    if (arg != NULL) { trim_YL=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
 
-    arg = SCmd.next(); 
-    if (arg != NULL) { trim_YR=atoi(arg); }    // Converts a char string to an integer  
+    arg = SCmd.next();
+    if (arg != NULL) { trim_YR=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
 
-    arg = SCmd.next(); 
-    if (arg != NULL) { trim_RL=atoi(arg); }    // Converts a char string to an integer  
+    arg = SCmd.next();
+    if (arg != NULL) { trim_RL=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
 
-    arg = SCmd.next(); 
-    if (arg != NULL) { trim_RR=atoi(arg); }    // Converts a char string to an integer  
+    arg = SCmd.next();
+    if (arg != NULL) { trim_RR=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
-    
+
     if(error==true){
 
       Otto.putMouth(xMouth);
@@ -223,16 +223,16 @@ void receiveTrims(){
     }else{ //Save it on EEPROM
       Otto.setTrims(trim_YL, trim_YR, trim_RL, trim_RR);
       Otto.saveTrimsOnEEPROM(); //Uncomment this only for one upload when you finaly set the trims.
-    } 
+    }
 
     sendFinalAck();
 
 }
 
 //-- Function to receive Servo commands
-void receiveServo(){  
+void receiveServo(){
 
-    sendAck(); 
+    sendAck();
     moveId = 30;
 
     //Definition of Servo Bluetooth command
@@ -244,21 +244,21 @@ void receiveServo(){
     int servo_YL,servo_YR,servo_RL,servo_RR;
 
     arg=SCmd.next();
-    if (arg != NULL) { servo_YL=atoi(arg); }    // Converts a char string to an integer   
+    if (arg != NULL) { servo_YL=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
 
-    arg = SCmd.next(); 
-    if (arg != NULL) { servo_YR=atoi(arg); }    // Converts a char string to an integer  
+    arg = SCmd.next();
+    if (arg != NULL) { servo_YR=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
 
-    arg = SCmd.next(); 
-    if (arg != NULL) { servo_RL=atoi(arg); }    // Converts a char string to an integer  
+    arg = SCmd.next();
+    if (arg != NULL) { servo_RL=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
 
-    arg = SCmd.next(); 
-    if (arg != NULL) { servo_RR=atoi(arg); }    // Converts a char string to an integer  
+    arg = SCmd.next();
+    if (arg != NULL) { servo_RR=atoi(arg); }    // Converts a char string to an integer
     else {error=true;}
-    
+
     if(error==true){
 
       Otto.putMouth(xMouth);
@@ -267,9 +267,9 @@ void receiveServo(){
 
     }else{ //Update Servo:
 
-      int servoPos[4]={servo_YL, servo_YR, servo_RL, servo_RR}; 
+      int servoPos[4]={servo_YL, servo_YR, servo_RL, servo_RR};
       Otto._moveServos(200, servoPos);   //Move 200ms
-      
+
     }
 
     sendFinalAck();
@@ -287,8 +287,8 @@ void receiveMovement(){
 
     //Definition of Movement Bluetooth commands
     //M  MoveID  T   MoveSize  
-    char *arg; 
-    arg = SCmd.next(); 
+    char *arg;
+    arg = SCmd.next();
     if (arg != NULL) {moveId=atoi(arg);}
     else{
       Otto.putMouth(xMouth);
@@ -296,14 +296,14 @@ void receiveMovement(){
       Otto.clearMouth();
       moveId=0; //stop
     }
-    
-    arg = SCmd.next(); 
+
+    arg = SCmd.next();
     if (arg != NULL) {T=atoi(arg);}
     else{
       T=1000;
     }
 
-    arg = SCmd.next(); 
+    arg = SCmd.next();
     if (arg != NULL) {moveSize=atoi(arg);}
     else{
       moveSize =15;
@@ -319,19 +319,19 @@ void move(int moveId){
     case 0:
       Otto.home();
       break;
-    case 1: //M 1 1000 
+    case 1: //M 1 1000
       Otto.walk(1,T,1);
       break;
-    case 2: //M 2 1000 
+    case 2: //M 2 1000
       Otto.walk(1,T,-1);
       break;
-    case 3: //M 3 1000 
+    case 3: //M 3 1000
       Otto.turn(1,T,1);
       break;
-    case 4: //M 4 1000 
+    case 4: //M 4 1000
       Otto.turn(1,T,-1);
       break;
-    case 5: //M 5 1000 30 
+    case 5: //M 5 1000 30
       Otto.updown(1,T,moveSize);
       break;
     case 6: //M 6 1000 30
@@ -343,16 +343,16 @@ void move(int moveId){
     case 8: //M 8 1000 30
       Otto.swing(1,T,moveSize);
       break;
-    case 9: //M 9 1000 30 
+    case 9: //M 9 1000 30
       Otto.crusaito(1,T,moveSize,1);
       break;
-    case 10: //M 10 1000 30 
+    case 10: //M 10 1000 30
       Otto.crusaito(1,T,moveSize,-1);
       break;
-    case 11: //M 11 1000 
+    case 11: //M 11 1000
       Otto.jump(1,T);
       break;
-    case 12: //M 12 1000 30 
+    case 12: //M 12 1000 30
       Otto.flapping(1,T,moveSize,1);
       break;
     case 13: //M 13 1000 30
@@ -361,16 +361,16 @@ void move(int moveId){
     case 14: //M 14 1000 20
       Otto.tiptoeSwing(1,T,moveSize);
       break;
-    case 15: //M 15 500 
+    case 15: //M 15 500
       Otto.bend(1,T,1);
       break;
-    case 16: //M 16 500 
+    case 16: //M 16 500
       Otto.bend(1,T,-1);
       break;
-    case 17: //M 17 500 
+    case 17: //M 17 500
       Otto.shakeLeg(1,T,1);
       break;
-    case 18: //M 18 500 
+    case 18: //M 18 500
       Otto.shakeLeg(1,T,-1);
       break;
     case 19: //M 19 500 20
@@ -395,15 +395,15 @@ void receiveGesture(){
 
     //sendAck & stop if necessary
     sendAck();
-    Otto.home(); 
+    Otto.home();
 
     //Definition of Gesture Bluetooth commands
     //H  GestureID  
     int gesture = 0;
-    char *arg; 
-    arg = SCmd.next(); 
+    char *arg;
+    arg = SCmd.next();
     if (arg != NULL) {gesture=atoi(arg);}
-    else 
+    else
     {
       //Otto.putMouth(xMouth);
       delay(2000);
@@ -411,63 +411,63 @@ void receiveGesture(){
     }
 
     switch (gesture) {
-      case 1: //H 1 
+      case 1: //H 1
         ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoHappy);
         ematrix.clear(); ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
-      case 2: //H 2 
+      case 2: //H 2
         ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoSuperHappy);
         ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
-      case 3: //H 3 
+      case 3: //H 3
         ematrix.clear(); ematrix.drawBitmap(0, 0, + sad_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoSad);
         ematrix.clear(); ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
-      case 4: //H 4 
+      case 4: //H 4
         ematrix.clear(); ematrix.drawBitmap(0, 0, + sleep_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoSleeping);
         break;
-      case 5: //H 5  
+      case 5: //H 5
         ematrix.clear(); ematrix.drawBitmap(0, 0, + xx_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoFart);
         break;
-      case 6: //H 6 
+      case 6: //H 6
         ematrix.clear(); ematrix.drawBitmap(0, 0, + confused_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoConfused);
         break;
-      case 7: //H 7 
+      case 7: //H 7
         ematrix.clear(); ematrix.drawBitmap(0, 0, + love_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoLove);
         break;
-      case 8: //H 8 
+      case 8: //H 8
         ematrix.clear(); ematrix.drawBitmap(0, 0, + angry_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoAngry);
         ematrix.clear(); ematrix.drawBitmap(0, 0, + angry2_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
-      case 9: //H 9  
+      case 9: //H 9
         ematrix.clear(); ematrix.drawBitmap(0, 0, + freetful_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoFretful);
         break;
       case 10: //H 10
         ematrix.clear(); ematrix.drawBitmap(0, 0, + magic_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoMagic);
-        break;  
+        break;
       case 11: //H 11
         ematrix.clear(); ematrix.drawBitmap(0, 0, + wave_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoWave);
-        break;   
+        break;
       case 12: //H 12
         ematrix.clear(); ematrix.drawBitmap(0, 0, + magic_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoVictory);
-        break; 
+        break;
       case 13: //H 13
         ematrix.clear(); ematrix.drawBitmap(0, 0, + fail_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoFail);
         ematrix.clear(); ematrix.drawBitmap(0, 0, + XX_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
-        break;         
+        break;
       default:
         break;
     }
@@ -481,15 +481,15 @@ void receiveSing(){
 
     //sendAck & stop if necessary
     sendAck();
-    Otto.home(); 
+    Otto.home();
 
     //Definition of Sing Bluetooth commands
     //K  SingID    
     int sing = 0;
-    char *arg; 
-    arg = SCmd.next(); 
+    char *arg;
+    arg = SCmd.next();
     if (arg != NULL) {sing=atoi(arg);}
-    else 
+    else
     {
      // Otto.putMouth(xMouth);
       delay(2000);
@@ -497,42 +497,42 @@ void receiveSing(){
     }
 
     switch (sing) {
-      case 1: //K 1 
+      case 1: //K 1
         Otto.sing(S_connection);
         break;
-      case 2: //K 2 
+      case 2: //K 2
         Otto.sing(S_disconnection);
         break;
-      case 3: //K 3 
+      case 3: //K 3
         Otto.sing(S_surprise);
         break;
-      case 4: //K 4 
+      case 4: //K 4
         Otto.sing(S_OhOoh);
         break;
-      case 5: //K 5  
+      case 5: //K 5
         Otto.sing(S_OhOoh2);
         break;
-      case 6: //K 6 
+      case 6: //K 6
         Otto.sing(S_cuddly);
         break;
-      case 7: //K 7 
+      case 7: //K 7
         Otto.sing(S_sleeping);
         break;
-      case 8: //K 8 
+      case 8: //K 8
         Otto.sing(S_happy);
         break;
-      case 9: //K 9  
+      case 9: //K 9
         Otto.sing(S_superHappy);
         break;
       case 10: //K 10
         Otto.sing(S_happy_short);
-        break;  
+        break;
       case 11: //K 11
         Otto.sing(S_sad);
-        break;   
+        break;
       case 12: //K 12
         Otto.sing(S_confused);
-        break; 
+        break;
       case 13: //K 13
         Otto.sing(S_fart1);
         break;
@@ -541,19 +541,19 @@ void receiveSing(){
         break;
       case 15: //K 15
         Otto.sing(S_fart3);
-        break;    
+        break;
       case 16: //K 16
         Otto.sing(S_mode1);
-        break; 
+        break;
       case 17: //K 17
         Otto.sing(S_mode2);
-        break; 
+        break;
       case 18: //K 18
         Otto.sing(S_mode3);
-        break;   
+        break;
       case 19: //K 19
         Otto.sing(S_buttonPushed);
-        break;                      
+        break;
       default:
         break;
     }
@@ -617,15 +617,15 @@ void OttoLowBatteryAlarm(){
     double batteryLevel = Otto.getBatteryLevel();
 
     if(batteryLevel<45){
-         
+
           Otto.putMouth(thunder);
           Otto.bendTones (880, 2000, 1.04, 8, 3);  //A5 = 880
-          
+
           delay(30);
 
           Otto.bendTones (2000, 880, 1.02, 8, 3);  //A5 = 880
           Otto.clearMouth();
-          delay(500);    
+          delay(500);
     }
 }
 
@@ -634,7 +634,7 @@ bool checkIfConnected(){
   long now = millis();
 
   if(state == HIGH){
-    
+
     if(confirmedConnected == false){
 
       if(lastState == LOW){
@@ -655,7 +655,7 @@ bool checkIfConnected(){
         }
       }
     }
-    
+
   }else { // state is LOW
     if(lastState == HIGH && confirmedConnected == true){
       Otto.sing(S_disconnection);
@@ -665,6 +665,6 @@ bool checkIfConnected(){
     }
     lastState = LOW;
   }
-  
+
   return confirmedConnected;
 }

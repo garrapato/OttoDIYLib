@@ -69,11 +69,11 @@ Otto9 Otto;  // This is Otto!
 #define PIN_BUTTON     A0 // TOUCH SENSOR Pin (A0) PULL DOWN RESISTOR MAYBE REQUIRED to stop false interrupts (interrupt PIN)
 
 /**
- * LED Matrix PINs
+ * LED Mouth Matrix PINs
  */
-#define CLK_PIN        A1 // CLK pin (A1)
-#define CS_PIN         A2 // CS  pin (A2)
-#define DIN_PIN        A3 // DIN pin (A3)
+#define PIN_MOUTH_MATRIX_CLK        A1 // CLK pin (A1)
+#define PIN_MOUTH_MATRIX_CS         A2 // CS  pin (A2)
+#define PIN_MOUTH_MATRIX_DIN        A3 // DIN pin (A3)
 #define LED_DIRECTION   1 // LED MATRIX CONNECTOR position (orientation) 1 = top 2 = bottom 3 = left 4 = right  DEFAULT = 1
 
 /**
@@ -112,7 +112,7 @@ double batteryCHECK = 0;
 /**
  * LEDs Matrix 8x8 MAX7219ENG
  */
-unsigned long int matrix;
+unsigned long int mouthMatrix;
 
 /**
  * BLE Connection status
@@ -125,7 +125,6 @@ bool confirmedConnected = false;
 /**
  * Touch Sensor
  */
-
 int lastTouchState = LOW;
 int currentTouchState;
 
@@ -135,15 +134,25 @@ int currentTouchState;
 void setup() {
     // Serial communication initialization
     Serial.begin(9600);
+
+    // Bluetooth communication initialization
     BTserial.begin(9600);
     pinMode(PIN_BLE_STATE, INPUT);
-    Otto.init(PIN_LEG_LEFT, PIN_LEG_RIGHT, PIN_FOOT_LEFT, PIN_FOOT_RIGHT, true, PIN_NOISE, PIN_BUZZER, PIN_US_TRIGGER,
-              PIN_US_ECHO); // Set the servo pins and ultrasonic pins
-    Otto.initMATRIX( DIN_PIN, CS_PIN, CLK_PIN, LED_DIRECTION);   // set up Matrix display pins = DIN pin,CS pin, CLK pin, MATRIX orientation 
+
+    // Otto initialization
+    Otto.init(PIN_LEG_LEFT, PIN_LEG_RIGHT, PIN_FOOT_LEFT, PIN_FOOT_RIGHT, true, PIN_NOISE, PIN_BUZZER, PIN_US_TRIGGER, PIN_US_ECHO); // Set the servo pins and ultrasonic pins
+
+    // Mouth LED Matrix innitialization
+    Otto.initMATRIX( PIN_MOUTH_MATRIX_DIN, PIN_MOUTH_MATRIX_CS, PIN_MOUTH_MATRIX_CLK, LED_DIRECTION);   // set up Matrix display pins = DIN pin,CS pin, CLK pin, MATRIX orientation 
     Otto.matrixIntensity(1);// set up Matrix display intensity
+
+    // Assembly Mode initialization
     randomSeed(analogRead(PIN_NOISE));   // Set a random seed
     pinMode(PIN_ASSEMBLY, INPUT_PULLUP); // - Easy assembly pin - LOW is assembly Mode
+
+    // Touch Sensor initialization
     pinMode(PIN_BUTTON, INPUT); // - ensure pull-down resistors are used
+
     // Setup callbacks for SerialCommand commands
     SCmd.addCommand("S", receiveStop);      //  sendAck & sendFinalAck
     SCmd.addCommand("L", receiveLED);       //  sendAck & sendFinalAck
@@ -155,11 +164,14 @@ void setup() {
     SCmd.addCommand("C", receiveTrims);     //  sendAck & sendFinalAck
     SCmd.addCommand("G", receiveServo);     //  sendAck & sendFinalAck
     SCmd.addCommand("R", receiveName);      //  sendAck & sendFinalAck
+
     SCmd.addCommand("E", requestName);
     SCmd.addCommand("D", requestDistance);
     SCmd.addCommand("N", requestNoise);
     SCmd.addCommand("I", requestProgramId);
+
     SCmd.addDefaultHandler(receiveStop);
+
     // Otto wake up!
     Otto.sing(S_connection);
     Otto.home();
@@ -241,14 +253,14 @@ void receiveLED() {
     Otto.home();
     // Examples of receiveLED Bluetooth commands
     // L 000000001000010100100011000000000
-    unsigned long int matrix;
+    //unsigned long int mouthMatrix;
     char *arg;
     char *endstr;
     arg = SCmd.next();
     Serial.println(arg);
     if (arg != NULL) {
-        matrix = strtoul(arg, &endstr, 2); // Converts a char string to unsigned long integer
-        Otto.putMouth(matrix, false);
+        mouthMatrix = strtoul(arg, &endstr, 2); // Converts a char string to unsigned long integer
+        Otto.putMouth(mouthMatrix, false);
     } else {
         Otto.putMouth(xMouth);
         delay(2000);
@@ -811,6 +823,7 @@ void checkIfTouched() {
     }
     lastTouchState = currentTouchState;
 }
+
 /**
  * Function to check BLE connection status
  * @return TRUE if connected
