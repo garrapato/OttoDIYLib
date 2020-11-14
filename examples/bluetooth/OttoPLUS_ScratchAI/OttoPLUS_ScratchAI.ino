@@ -4,8 +4,8 @@
  * Designed to work with the basic Otto or PLUS  or other biped robots. some of these functions will need a good power source such as a LIPO battery.
  * Otto DIY invests time and resources providing open source code and hardware,  please support by purchasing kits from (https:// www.ottodiy.com)
  *
- * If you wish to use this software under Open Source Licensing, you must contribute all your source code to the community and all text above must be included in any redistribution
- * in accordance with the GPL Version 2 when your application is distributed. See http:// www.gnu.org/copyleft/gpl.html
+ * If you wish to use this software under Open Source Licensing, you must contribute all your source code to the community and all text above must be
+ * included in any redistribution in accordance with the GPL Version 2 when your application is distributed. See http:// www.gnu.org/copyleft/gpl.html
  *
  * ADDED Progmem for MOUTHS and GESTURES: Paul Van De Veen October 2018
  * ADDED PIN definitions for ease of use: Jason Snow November 2018
@@ -19,17 +19,19 @@
 #include <EEPROM.h>
 #include <SerialCommand.h> // Library to manage serial commands
 #include <Otto9.h>
+#include "Adafruit_LEDBackpack.h"
 
 Otto9 Otto;  // This is Otto!
+
 /**
- *                  --------
- *                 |  O  O  |
- *                 |--------|
- *     RIGHT LEG 3 |        | LEFT LEG 2
- *                  --------
- *                 ||      ||
- *  RIGHT FOOT 5 |---      ---| LEFT FOOT 4
-*/
+ *                   ╭─────────╮
+ *                   │  O   O  │
+ *                   ├─────────┤
+ *                   │         │
+ *   RIGHT LEG  3    ├──┬───┬──┤    LEFT LEG  2
+ *                   ├──┤   ├──┤
+ *   RIGHT FOOT 5  ━━┷━━┙   ┕━━┷━━  LEFT FOOT 4
+ */
 
 /**
  * Servo PINs
@@ -71,9 +73,9 @@ Otto9 Otto;  // This is Otto!
 /**
  * LED Mouth Matrix PINs
  */
-#define PIN_MOUTH_MATRIX_CLK        A1 // CLK pin (A1)
-#define PIN_MOUTH_MATRIX_CS         A2 // CS  pin (A2)
-#define PIN_MOUTH_MATRIX_DIN        A3 // DIN pin (A3)
+#define PIN_MOUTH_CLK  A1 // CLK pin (A1)
+#define PIN_MOUTH_CS   A2 // CS  pin (A2)
+#define PIN_MOUTH_DIN  A3 // DIN pin (A3)
 #define LED_DIRECTION   1 // LED MATRIX CONNECTOR position (orientation) 1 = top 2 = bottom 3 = left 4 = right  DEFAULT = 1
 
 /**
@@ -91,6 +93,8 @@ SerialCommand SCmd(BTserial);  // The SerialCommand object
 const char programID[] = "OttoPLUS_Scratch_V9"; // Each program will have a ID
 const char factory_name = '$'; // Factory name
 const char first_name = '#'; // First name
+
+Adafruit_8x16matrix eyesMatrix = Adafruit_8x16matrix();
 
 /**
  * Movement parameters
@@ -113,6 +117,27 @@ double batteryCHECK = 0;
  * LEDs Matrix 8x8 MAX7219ENG
  */
 unsigned long int mouthMatrix;
+
+/**
+ * LED Matrix images 8x16
+ */
+static const uint8_t PROGMEM
+logo_bmp[] = {  B01111110,B10000001,B10111001,B10101001,B10111001,B10010001,B10111001,B10010001,B10010001,B10111001,B10010001,B10111001,B10101001,B10111001,B10000001,B01111110},
+happy_bmp[] = {  B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000,B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000},
+eyes_bmp[] = {  B00000000,B00111100,B01000010,B01001010,B01000010,B01000010,B00111100,B00000000,B00000000,B00111100,B01000010,B01001010,B01000010,B01000010,B00111100,B00000000},
+sad_bmp[] =  {  B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000,B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000},
+xx_bmp[] =  {  B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000},
+XX_bmp[] = {  B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001,B00000000,B00000000,B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001},
+angry_bmp[] = {  B00000000,B00011110,B00111100,B01111000,B01110000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B01110000,B01111000,B00111100,B00011110,B00000000},
+angry2_bmp[] = {  B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000},
+sleep_bmp[] = {  B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000},
+freetful_bmp[] = {  B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000,B00000000,B00000000,B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000},
+love_bmp[] = {  B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000,B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000},
+confused_bmp[] = {  B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000,B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000},
+wave_bmp[] = {  B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000,B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000},
+magic_bmp[] = {  B00000000,B00000000,B01111110,B11111111,B01111110,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B01111110,B11111111,B01111110,B00000000,B00000000},
+fail_bmp[] = {  B00000000,B00110000,B01111000,B01111000,B01111100,B00111100,B00001000,B00000000,B00000000,B00001000,B00111100,B01111100,B01111000,B01111000,B00110000,B00000000},
+full_bmp[] =  {   B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111 };
 
 /**
  * BLE Connection status
@@ -138,14 +163,18 @@ void setup() {
     // Bluetooth communication initialization
     BTserial.begin(9600);
     pinMode(PIN_BLE_STATE, INPUT);
-
+  
     // Otto initialization
     Otto.init(PIN_LEG_LEFT, PIN_LEG_RIGHT, PIN_FOOT_LEFT, PIN_FOOT_RIGHT, true, PIN_NOISE, PIN_BUZZER, PIN_US_TRIGGER, PIN_US_ECHO); // Set the servo pins and ultrasonic pins
 
-    // Mouth LED Matrix innitialization
-    Otto.initMATRIX( PIN_MOUTH_MATRIX_DIN, PIN_MOUTH_MATRIX_CS, PIN_MOUTH_MATRIX_CLK, LED_DIRECTION);   // set up Matrix display pins = DIN pin,CS pin, CLK pin, MATRIX orientation 
+    // Mouth LED Matrix initialization
+    Otto.initMATRIX( PIN_MOUTH_DIN, PIN_MOUTH_CS, PIN_MOUTH_CLK, LED_DIRECTION);   // set up Matrix display pins = DIN pin,CS pin, CLK pin, MATRIX orientation 
     Otto.matrixIntensity(1);// set up Matrix display intensity
 
+    // Eyes LED Matrix initialization
+    eyesMatrix.begin(0x70);  // pass in the address
+    eyesMatrix.setBrightness(0);
+    
     // Assembly Mode initialization
     randomSeed(analogRead(PIN_NOISE));   // Set a random seed
     pinMode(PIN_ASSEMBLY, INPUT_PULLUP); // - Easy assembly pin - LOW is assembly Mode
@@ -153,7 +182,7 @@ void setup() {
     // Touch Sensor initialization
     pinMode(PIN_BUTTON, INPUT); // - ensure pull-down resistors are used
 
-    // Setup callbacks for SerialCommand commands
+    // Setup callbacks for SerialCommand RECEIVE commands
     SCmd.addCommand("S", receiveStop);      //  sendAck & sendFinalAck
     SCmd.addCommand("L", receiveLED);       //  sendAck & sendFinalAck
     SCmd.addCommand("T", receiveBuzzer);    //  sendAck & sendFinalAck
@@ -165,6 +194,7 @@ void setup() {
     SCmd.addCommand("G", receiveServo);     //  sendAck & sendFinalAck
     SCmd.addCommand("R", receiveName);      //  sendAck & sendFinalAck
 
+    // Setup callbacks for SerialCommand REQUEST commands
     SCmd.addCommand("E", requestName);
     SCmd.addCommand("D", requestDistance);
     SCmd.addCommand("N", requestNoise);
@@ -208,6 +238,10 @@ void setup() {
         Otto.sing(S_happy_short);   // sing every 5 seconds so we know OTTO is still working
         delay(5000);
     }
+
+    //eyesMatrix.clear();
+    //eyesMatrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);
+    //eyesMatrix.writeDisplay();
 }
 
 /**
