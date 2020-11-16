@@ -14,8 +14,8 @@
 #include <Otto9.h>
 Otto9 Otto;
 #include <Wire.h>
-#include "Adafruit_LEDBackpack.h"
-Adafruit_8x16matrix ematrix = Adafruit_8x16matrix();
+//#include "Adafruit_LEDBackpack.h"
+//Adafruit_8x16matrix ematrix = Adafruit_8x16matrix();
 #include <SerialCommand.h>//-- Library to manage serial commands
 SoftwareSerial BTserial = SoftwareSerial(11,12); //  TX  RX of the Bluetooth
 SerialCommand SCmd(BTserial);  //The SerialCommand object
@@ -78,7 +78,7 @@ void setup(){
   pinMode(statePin, INPUT);
   Otto.initMATRIX( DIN_PIN, CS_PIN, CLK_PIN, LED_DIRECTION);
   Otto.init(PIN_YL, PIN_YR, PIN_RL, PIN_RR, true, A6, PIN_Buzzer, PIN_Trigger, PIN_Echo);
-  ematrix.begin(0x70);  // pass in the address
+  //ematrix.begin(0x70);  // pass in the address
   Otto.matrixIntensity(1);// set up Matrix display intensity
   //Setup callbacks for SerialCommand commands
   SCmd.addCommand("S", receiveStop);      //  sendAck & sendFinalAck
@@ -96,15 +96,15 @@ void setup(){
   Otto.sing(S_connection);
   Otto.home();
   Otto.putMouth(smile);
-  ematrix.drawBitmap(0, 0, + logo_bmp , 8, 16, LED_ON);
-  ematrix.writeDisplay();
+  //ematrix.drawBitmap(0, 0, + logo_bmp , 8, 16, LED_ON);
+  //ematrix.writeDisplay();
   delay(200);
   Otto.sing(S_happy);
   delay(200);
   Otto.putMouth(happyOpen);
-  ematrix.clear();
-  ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);
-  ematrix.writeDisplay();
+  //ematrix.clear();
+  //ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);
+  //ematrix.writeDisplay();
 }
 ///////////////////////////////////////////////////////////////////
 //-- Principal Loop ---------------------------------------------//
@@ -412,61 +412,61 @@ void receiveGesture(){
 
     switch (gesture) {
       case 1: //H 1
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); //ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoHappy);
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
       case 2: //H 2
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoSuperHappy);
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + happy_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
       case 3: //H 3
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + sad_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + sad_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoSad);
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
       case 4: //H 4
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + sleep_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + sleep_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoSleeping);
         break;
       case 5: //H 5
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + xx_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + xx_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoFart);
         break;
       case 6: //H 6
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + confused_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + confused_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoConfused);
         break;
       case 7: //H 7
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + love_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + love_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoLove);
         break;
       case 8: //H 8
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + angry_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + angry_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoAngry);
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + angry2_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + angry2_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
       case 9: //H 9
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + freetful_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + freetful_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoFretful);
         break;
       case 10: //H 10
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + magic_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + magic_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoMagic);
         break;
       case 11: //H 11
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + wave_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + wave_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoWave);
         break;
       case 12: //H 12
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + magic_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + magic_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoVictory);
         break;
       case 13: //H 13
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + fail_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + fail_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         Otto.playGesture(OttoFail);
-        ematrix.clear(); ematrix.drawBitmap(0, 0, + XX_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
+        //ematrix.clear(); ematrix.drawBitmap(0, 0, + XX_bmp , 8, 16, LED_ON);  ematrix.writeDisplay();
         break;
       default:
         break;

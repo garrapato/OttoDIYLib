@@ -20,6 +20,7 @@
 #include <SerialCommand.h> // Library to manage serial commands
 #include <Otto9.h>
 #include "Adafruit_LEDBackpack.h"
+#include <RFTransmitter.h>
 
 Otto9 Otto;  // This is Otto!
 
@@ -34,12 +35,48 @@ Otto9 Otto;  // This is Otto!
  */
 
 /**
+ * Otto Components
+ *
+ * To include code to the module installed in your Otto, uncomment the corresponding line.
+ * Remember that the more components you add, the larger the compiled code will be.
+ * Each Otto model has different components, for example:
+ * Otto Humanoid has two additional servos and an 8x8 LED matrix for his mouth,
+ * while Otto Eyes has a 16x8 matrix for his eyes.
+ */
+#define BLUETOOTH         // Uncomment this line to include code to Bluetooth module
+#define RADIO_FREQUENCY   // Uncomment this line to include code to legs servos
+#define EYES_MATRIX       // Uncomment this line to include code to 16x8 LED matrix
+//#define MOUTH_MATRIX      // Uncomment this line to include code to 8x8 LED matrix
+#define TOUCH_SENSOR      // Uncomment this line to include code to touch sensor
+//#define NOISE_SENSOR      // Uncomment this line to include code to noise sensor
+#define ULTRASONIC_SENSOR // Uncomment this line to include code to ultrasonic sensor
+#define BUZZER            // Uncomment this line to include code to buzzer
+#define SERVOS            // Uncomment this line to include code to servos
+//#define FUNNY_LED         // Uncomment this line to include code to Funny led
+//#define ASSEMBLY          // Uncomment this line to include code to set in assembly mode
+
+/**
+ * Reserved PINs
+ */
+#define PIN_RX         0
+#define PIN_TX         1
+
+/**
  * Servo PINs
  */
 #define PIN_LEG_LEFT   2 // servo[0]  left leg
 #define PIN_LEG_RIGHT  3 // servo[1]  right leg
 #define PIN_FOOT_LEFT  4 // servo[2]  left foot
 #define PIN_FOOT_RIGHT 5 // servo[3]  right foot
+#define PIN_ARM_LEFT   6 // servo[4]  Left arm
+#define PIN_ARM_RIGHT  7 // servo[5]  Right arm
+
+/**
+ * RF 433Mhz Module
+ */
+#define PIN_RF_TX      6 // Check cconflict with arms in Otto Humanoid
+#define PIN_RF_RX      7 // Check cconflict with arms in Otto Humanoid and Assembly Mode
+#define RF_SPEED    2000
 
 /**
  * Servo Assembly PIN
@@ -56,14 +93,14 @@ Otto9 Otto;  // This is Otto!
 /**
  * BLE Module PINs
  */
-#define PIN_BLE_STATE  10
-#define PIN_BLE_TX     11
-#define PIN_BLE_RX     12
+#define PIN_BLE_STATE 10
+#define PIN_BLE_TX    11
+#define PIN_BLE_RX    12
 
 /**
  * Buzzer PIN
  */
-#define PIN_BUZZER     13 // BUZZER pin (13)
+#define PIN_BUZZER    13 // BUZZER pin (13)
 
 /**
  * Touch Sensor or Push Button
@@ -71,12 +108,18 @@ Otto9 Otto;  // This is Otto!
 #define PIN_BUTTON     A0 // TOUCH SENSOR Pin (A0) PULL DOWN RESISTOR MAYBE REQUIRED to stop false interrupts (interrupt PIN)
 
 /**
- * LED Mouth Matrix PINs
+ * Mouth LED Matrix PINs
  */
 #define PIN_MOUTH_CLK  A1 // CLK pin (A1)
 #define PIN_MOUTH_CS   A2 // CS  pin (A2)
 #define PIN_MOUTH_DIN  A3 // DIN pin (A3)
 #define LED_DIRECTION   1 // LED MATRIX CONNECTOR position (orientation) 1 = top 2 = bottom 3 = left 4 = right  DEFAULT = 1
+
+/**
+ * Eyes LED Matrix PINs
+ */
+#define SCL
+#define SDA
 
 /**
  * Sound Sensor PIN
@@ -90,18 +133,31 @@ Otto9 Otto;  // This is Otto!
 SoftwareSerial BTserial = SoftwareSerial(PIN_BLE_TX, PIN_BLE_RX); //  TX  RX of the Bluetooth
 SerialCommand SCmd(BTserial);  // The SerialCommand object
 
-const char programID[] = "OttoPLUS_Scratch_V9"; // Each program will have a ID
+const char programID[] = "OttoPLUS_Scratch_V1"; // Each program will have a ID
 const char factory_name = '$'; // Factory name
 const char first_name = '#'; // First name
 
+/**
+ * Eyes LED Matrix
+ */
+#ifdef EYES_MATRIX
 Adafruit_8x16matrix eyesMatrix = Adafruit_8x16matrix();
+#endif
+
+/**
+ * RF 433Mhz Module
+ */
+#ifdef RADIO_FREQUENCY
+RFTransmitter transmitter(PIN_RF_TX, 1);
+#endif
 
 /**
  * Movement parameters
  */
 int duration = 1000;     // Initial duration of movement
 int moveID = 0;          // Number of movement
-int moveSize = 15;       // Asociated with the height of some movements
+int moveSize = 15;       // Associated with the height of some movements
+int steps = 1;           // Number of steps
 
 /**
  * Button
@@ -121,23 +177,25 @@ unsigned long int mouthMatrix;
 /**
  * LED Matrix images 8x16
  */
+#ifdef EYES_MATRIX
 static const uint8_t PROGMEM
-logo_bmp[] = {  B01111110,B10000001,B10111001,B10101001,B10111001,B10010001,B10111001,B10010001,B10010001,B10111001,B10010001,B10111001,B10101001,B10111001,B10000001,B01111110},
-happy_bmp[] = {  B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000,B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000},
-eyes_bmp[] = {  B00000000,B00111100,B01000010,B01001010,B01000010,B01000010,B00111100,B00000000,B00000000,B00111100,B01000010,B01001010,B01000010,B01000010,B00111100,B00000000},
-sad_bmp[] =  {  B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000,B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000},
-xx_bmp[] =  {  B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000},
-XX_bmp[] = {  B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001,B00000000,B00000000,B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001},
-angry_bmp[] = {  B00000000,B00011110,B00111100,B01111000,B01110000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B01110000,B01111000,B00111100,B00011110,B00000000},
-angry2_bmp[] = {  B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000},
-sleep_bmp[] = {  B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000},
-freetful_bmp[] = {  B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000,B00000000,B00000000,B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000},
-love_bmp[] = {  B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000,B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000},
-confused_bmp[] = {  B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000,B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000},
-wave_bmp[] = {  B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000,B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000},
-magic_bmp[] = {  B00000000,B00000000,B01111110,B11111111,B01111110,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B01111110,B11111111,B01111110,B00000000,B00000000},
-fail_bmp[] = {  B00000000,B00110000,B01111000,B01111000,B01111100,B00111100,B00001000,B00000000,B00000000,B00001000,B00111100,B01111100,B01111000,B01111000,B00110000,B00000000},
-full_bmp[] =  {   B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111 };
+logo_bmp[]     = { B01111110,B10000001,B10111001,B10101001,B10111001,B10010001,B10111001,B10010001,B10010001,B10111001,B10010001,B10111001,B10101001,B10111001,B10000001,B01111110},
+happy_bmp[]    = { B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000,B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000},
+eyes_bmp[]    = { B00000000,B00111100,B01111110,B01100110,B01100110,B01111110,B00111100,B00000000,B00000000,B00111100,B01111110,B01100110,B01100110,B01111110,B00111100,B00000000},
+sad_bmp[]      = { B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000,B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000},
+xx_bmp[]       = { B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000},
+XX_bmp[]       = { B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001,B00000000,B00000000,B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001},
+angry_bmp[]    = { B00000000,B00011110,B00111100,B01111000,B01110000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B01110000,B01111000,B00111100,B00011110,B00000000},
+angry2_bmp[]   = { B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000},
+sleep_bmp[]    = { B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000},
+freetful_bmp[] = { B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000,B00000000,B00000000,B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000},
+love_bmp[]     = { B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000,B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000},
+confused_bmp[] = { B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000,B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000},
+wave_bmp[]     = { B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000,B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000},
+magic_bmp[]    = { B00000000,B00000000,B01111110,B11111111,B01111110,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B01111110,B11111111,B01111110,B00000000,B00000000},
+fail_bmp[]     = { B00000000,B00110000,B01111000,B01111000,B01111100,B00111100,B00001000,B00000000,B00000000,B00001000,B00111100,B01111100,B01111000,B01111000,B00110000,B00000000},
+full_bmp[]     = { B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111,B11111111};
+#endif
 
 /**
  * BLE Connection status
@@ -163,36 +221,48 @@ void setup() {
     // Bluetooth communication initialization
     BTserial.begin(9600);
     pinMode(PIN_BLE_STATE, INPUT);
-  
+
     // Otto initialization
-    Otto.init(PIN_LEG_LEFT, PIN_LEG_RIGHT, PIN_FOOT_LEFT, PIN_FOOT_RIGHT, true, PIN_NOISE, PIN_BUZZER, PIN_US_TRIGGER, PIN_US_ECHO); // Set the servo pins and ultrasonic pins
+    Otto.init(PIN_LEG_LEFT, PIN_LEG_RIGHT, PIN_FOOT_LEFT, PIN_FOOT_RIGHT, true, PIN_NOISE, PIN_BUZZER, PIN_US_TRIGGER,
+              PIN_US_ECHO); // Set the servo pins and ultrasonic pins
 
     // Mouth LED Matrix initialization
-    Otto.initMATRIX( PIN_MOUTH_DIN, PIN_MOUTH_CS, PIN_MOUTH_CLK, LED_DIRECTION);   // set up Matrix display pins = DIN pin,CS pin, CLK pin, MATRIX orientation 
-    Otto.matrixIntensity(1);// set up Matrix display intensity
+#ifdef MOUTH_MATRIX
+    Otto.initMATRIX(PIN_MOUTH_DIN, PIN_MOUTH_CS, PIN_MOUTH_CLK, LED_DIRECTION);   // set up Matrix display pins = DIN pin,CS pin, CLK pin, MATRIX orientation
+    Otto.matrixIntensity(15);// set up Matrix display intensity
+#endif
 
     // Eyes LED Matrix initialization
+#ifdef EYES_MATRIX
     eyesMatrix.begin(0x70);  // pass in the address
-    eyesMatrix.setBrightness(0);
-    
+    eyesMatrix.setBrightness(1);
+#endif
+
     // Assembly Mode initialization
     randomSeed(analogRead(PIN_NOISE));   // Set a random seed
     pinMode(PIN_ASSEMBLY, INPUT_PULLUP); // - Easy assembly pin - LOW is assembly Mode
 
     // Touch Sensor initialization
+#ifdef TOUCH_SENSOR
     pinMode(PIN_BUTTON, INPUT); // - ensure pull-down resistors are used
+#endif
+
+    // RF 433Mhx Module initialization
+#ifdef RADIO_FREQUENCY
+#endif
 
     // Setup callbacks for SerialCommand RECEIVE commands
     SCmd.addCommand("S", receiveStop);      //  sendAck & sendFinalAck
     SCmd.addCommand("L", receiveLED);       //  sendAck & sendFinalAck
     SCmd.addCommand("T", receiveBuzzer);    //  sendAck & sendFinalAck
-    SCmd.addCommand("M", receiveMovement);  //  sendAck & sendFinalAck
-    SCmd.addCommand("H", receiveGesture);   //  sendAck & sendFinalAck
     SCmd.addCommand("K", receiveSing);      //  sendAck & sendFinalAck
-    SCmd.addCommand("J", receiveMode);      //  sendAck & sendFinalAck
+    SCmd.addCommand("H", receiveGesture);   //  sendAck & sendFinalAck
+    SCmd.addCommand("M", receiveMovement);  //  sendAck & sendFinalAck
     SCmd.addCommand("C", receiveTrims);     //  sendAck & sendFinalAck
     SCmd.addCommand("G", receiveServo);     //  sendAck & sendFinalAck
+    SCmd.addCommand("J", receiveMode);      //  sendAck & sendFinalAck
     SCmd.addCommand("R", receiveName);      //  sendAck & sendFinalAck
+    SCmd.addCommand("F", receiveRelay);     //  sendAck & sendFinalAck
 
     // Setup callbacks for SerialCommand REQUEST commands
     SCmd.addCommand("E", requestName);
@@ -239,9 +309,11 @@ void setup() {
         delay(5000);
     }
 
-    //eyesMatrix.clear();
-    //eyesMatrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);
-    //eyesMatrix.writeDisplay();
+#ifdef EYES_MATRIX
+    eyesMatrix.clear();
+    eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+    eyesMatrix.writeDisplay();
+#endif
 }
 
 /**
@@ -250,6 +322,7 @@ void setup() {
 void loop() {
     checkIfTouched();
     checkIfConnected();
+    obstacleDetector();
     SCmd.readSerial();    // If Otto is moving yet
     if (Otto.getRestState() == false) {
         move(moveID);
@@ -264,9 +337,15 @@ void loop() {
  * Function to read distance sensor & to actualize obstacleDetected variable
  */
 void obstacleDetector() {
+#ifdef ULTRASONIC_SENSOR
     int distance = Otto.getDistance();
-    if (distance < 15) obstacleDetected = true;
-    else obstacleDetected = false;
+    if ((distance < 15) && !obstacleDetected) {
+        obstacleDetected = true;
+        BTserial.println("U:ACK");
+    } else {
+        obstacleDetected = false;
+    }
+#endif
 }
 
 /**
@@ -282,12 +361,12 @@ void receiveStop() {
  * Function to receive LED commands
  */
 void receiveLED() {
+#ifdef MOUTH_MATRIX
     // sendAck & stop if necessary
     sendAck();
     Otto.home();
     // Examples of receiveLED Bluetooth commands
     // L 000000001000010100100011000000000
-    //unsigned long int mouthMatrix;
     char *arg;
     char *endstr;
     arg = SCmd.next();
@@ -301,12 +380,14 @@ void receiveLED() {
         Otto.clearMouth();
     }
     sendFinalAck();
+#endif
 }
 
 /**
  *Function to receive buzzer commands
  */
 void receiveBuzzer() {
+#ifdef BUZZER
     // sendAck & stop if necessary
     sendAck();
     Otto.home();
@@ -329,12 +410,14 @@ void receiveBuzzer() {
         Otto.clearMouth();
     } else Otto._tone(frec, duration, 1);
     sendFinalAck();
+#endif
 }
 
 /**
  * Function to receive TRims commands
  */
 void receiveTrims() {
+#ifdef SERVOS
     // sendAck & stop if necessary
     sendAck();
     Otto.home();
@@ -371,12 +454,14 @@ void receiveTrims() {
         Otto.saveTrimsOnEEPROM(); // Uncomment this only for one upload when you finaly set the trims.
     }
     sendFinalAck();
+#endif
 }
 
 /**
  * Function to receive Servo commands
  */
 void receiveServo() {
+#ifdef SERVOS
     sendAck();
     moveID = 30;
 
@@ -413,19 +498,23 @@ void receiveServo() {
         Otto._moveServos(200, servoPos);   // Move 200ms
     }
     sendFinalAck();
+#endif
 }
 
 /**
  * Function to receive movement commands
  */
 void receiveMovement() {
+#ifdef SERVOS
     sendAck();
     if (Otto.getRestState() == true) Otto.setRestState(false);
 
     // Definition of Movement Bluetooth commands
-    // M  moveID  duration   moveSize
+    // M  moveID duration  moveSize
+    // M       1     1000        20
     char *arg;
-    arg = SCmd.next();
+
+    arg = SCmd.next(); // Move ID
     if (arg != NULL) moveID = atoi(arg);
     else {
         Otto.putMouth(xMouth);
@@ -433,12 +522,21 @@ void receiveMovement() {
         Otto.clearMouth();
         moveID = 0; // stop
     }
-    arg = SCmd.next();
+
+    arg = SCmd.next(); // Duration - Speed
     if (arg != NULL) duration = atoi(arg);
     else duration = 1000;
-    arg = SCmd.next();
+
+    /*
+    arg = SCmd.next(); // Steps
+    if (arg != NULL) steps = atoi(arg);
+    else steps = 1;
+    */
+
+    arg = SCmd.next(); // Move Size
     if (arg != NULL) moveSize = atoi(arg);
     else moveSize = 15;
+#endif
 }
 
 /**
@@ -446,6 +544,7 @@ void receiveMovement() {
  * @param moveID
  */
 void move(int moveID) {
+#ifdef SERVOS
     bool manualMode = false;
     switch (moveID) {
         case 0:
@@ -516,12 +615,10 @@ void move(int moveID) {
             break;
     }
     if (!manualMode) sendFinalAck();
-    BTserial.println("M:END");
+    BTserial.println("M:ACK");
+#endif
 }
 
-/**
- * Function to receive gesture commands
- */
 void receiveGesture() {
     // sendAck & stop if necessary
     sendAck();
@@ -534,57 +631,183 @@ void receiveGesture() {
     arg = SCmd.next();
     if (arg != NULL) gesture = atoi(arg);
     else delay(2000); // Otto.putMouth(xMouth); // Otto.clearMouth();
+
+#ifdef EYES_MATRIX
     switch (gesture) {
-        case 1: // H 1
+        case 1: //H 1
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +happy_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoHappy);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 2: // H 2
+        case 2: //H 2
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +happy_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoSuperHappy);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 3: // H 3
+        case 3: //H 3
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +sad_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoSad);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 4: // H 4
+        case 4: //H 4
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +sleep_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoSleeping);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 5: // H 5
+        case 5: //H 5
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +xx_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoFart);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 6: // H 6
+        case 6: //H 6
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +confused_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoConfused);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 7: // H 7
+        case 7: //H 7
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +love_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoLove);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 8: // H 8
+        case 8: //H 8
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +angry_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoAngry);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 9: // H 9
+        case 9: //H 9
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +freetful_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoFretful);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 10: // H 10
+        case 10: //H 10
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +magic_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoMagic);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 11: // H 11
+        case 11: //H 11
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +wave_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoWave);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 12: // H 12
+        case 12: //H 12
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +magic_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoVictory);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
-        case 13: // H 13
+        case 13: //H 13
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +fail_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             Otto.playGesture(OttoFail);
+            eyesMatrix.clear();
+            eyesMatrix.drawBitmap(0, 0, +XX_bmp, 8, 16, LED_ON);
+            eyesMatrix.writeDisplay();
             break;
         default:
             break;
     }
+#else
+        switch (gesture) {
+            case 1: // H 1
+                Otto.playGesture(OttoHappy);
+                break;
+            case 2: // H 2
+                Otto.playGesture(OttoSuperHappy);
+                break;
+            case 3: // H 3
+                Otto.playGesture(OttoSad);
+                break;
+            case 4: // H 4
+                Otto.playGesture(OttoSleeping);
+                break;
+            case 5: // H 5
+                Otto.playGesture(OttoFart);
+                break;
+            case 6: // H 6
+                Otto.playGesture(OttoConfused);
+                break;
+            case 7: // H 7
+                Otto.playGesture(OttoLove);
+                break;
+            case 8: // H 8
+                Otto.playGesture(OttoAngry);
+                break;
+            case 9: // H 9
+                Otto.playGesture(OttoFretful);
+                break;
+            case 10: // H 10
+                Otto.playGesture(OttoMagic);
+                break;
+            case 11: // H 11
+                Otto.playGesture(OttoWave);
+                break;
+            case 12: // H 12
+                Otto.playGesture(OttoVictory);
+                break;
+            case 13: // H 13
+                Otto.playGesture(OttoFail);
+                break;
+            default:
+                break;
+        }
+#endif
     sendFinalAck();
-    BTserial.println("H:END");
+    BTserial.println("H:ACK");
 }
 
 /**
  * Function to receive sing commands
  */
 void receiveSing() {
+#ifdef BUZZER
     // sendAck & stop if necessary
     sendAck();
     Otto.home();
@@ -657,6 +880,7 @@ void receiveSing() {
             break;
     }
     sendFinalAck();
+#endif
 }
 
 /**
@@ -704,6 +928,43 @@ void receiveMode() {
             break;
     }
     sendFinalAck();
+}
+
+/**
+ * Function to receive RF command
+ */
+void receiveRelay() {
+#ifdef RADIO_FREQUENCY
+    int relayNumber = 0;
+    int onoff = 0;
+
+    sendAck();
+    // F relayNumber ON/OFF
+    // F  1 1
+    char *arg;
+
+    arg = SCmd.next(); // Relay Number
+    if (arg != NULL) relayNumber = atoi(arg);
+    else {
+        Otto.putMouth(xMouth);
+        delay(2000);
+        Otto.clearMouth();
+        moveID = 0; // stop
+    }
+
+    arg = SCmd.next(); // ON-OFF
+    if (arg != NULL) onoff = atoi(arg);
+    else onoff = 0;
+
+    Serial.print("RF: ");
+    Serial.println(relayNumber);
+    Serial.println(onoff);
+
+    BTserial.println("OK RF");
+
+    char *msg = "Hello World!";
+    transmitter.send((byte *)msg, strlen(msg) + 1);
+#endif
 }
 
 /**
@@ -757,6 +1018,7 @@ void requestName() {
  * Function to send ultrasonic sensor measure (distance in "cm")
  */
 void requestDistance() {
+#ifdef ULTRASONIC_SENSOR
     Otto.home();  // stop if necessary
     int distance = Otto.getDistance();
     Serial.print(F("&&"));
@@ -766,12 +1028,14 @@ void requestDistance() {
     BTserial.println(distance);
     Serial.println(F("%%"));
     Serial.flush();
+#endif
 }
 
 /**
  * Function to send noise sensor measure
  */
 void requestNoise() {
+#ifdef NOISE_SENSOR
     Otto.home();  // stop if necessary
     int microphone = Otto.getNoise(); // analogRead(PIN_NOISE);
     Serial.print(F("&&"));
@@ -781,12 +1045,14 @@ void requestNoise() {
     BTserial.println(microphone);
     Serial.println(F("%%"));
     Serial.flush();
+#endif
 }
 
 /**
  * Function to send battery voltage percent
  */
 void requestBattery() {
+#ifdef BATTERY_SENSOR
     Otto.home();  // stop if necessary
     // The first read of the battery is often a wrong reading, so we will discard this value.
     double batteryLevel = Otto.getBatteryLevel();
@@ -797,6 +1063,7 @@ void requestBattery() {
     BTserial.println(batteryLevel);
     Serial.println(F("%%"));
     Serial.flush();
+#endif
 }
 
 /**
@@ -849,13 +1116,21 @@ void ButtonPushed() {
  * Function to Read Touch Sensor
  */
 void checkIfTouched() {
+#ifdef TOUCH_SENSOR
     currentTouchState = digitalRead(PIN_BUTTON);
-    if(lastTouchState == LOW && currentTouchState == HIGH) {
+    if (lastTouchState == LOW && currentTouchState == HIGH) {
+    #ifdef EYES_MATRIX
+        eyesMatrix.clear(); eyesMatrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  eyesMatrix.writeDisplay();
+    #endif
         Otto.sing(S_buttonPushed);
+    #ifdef EYES_MATRIX
+        eyesMatrix.clear(); eyesMatrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  eyesMatrix.writeDisplay();
+    #endif
         Serial.println("The sensor is touched");
-        BTserial.println(F("T:END"));
+        BTserial.println(F("T:ACK"));
     }
     lastTouchState = currentTouchState;
+#endif
 }
 
 /**
@@ -863,6 +1138,7 @@ void checkIfTouched() {
  * @return TRUE if connected
  */
 bool checkIfConnected() {
+#ifdef BLUETOOTH
     int state = digitalRead(PIN_BLE_STATE);
     long now = millis();
     if (state == HIGH) {
@@ -894,4 +1170,5 @@ bool checkIfConnected() {
         lastConnState = LOW;
     }
     return confirmedConnected;
+#endif
 }
