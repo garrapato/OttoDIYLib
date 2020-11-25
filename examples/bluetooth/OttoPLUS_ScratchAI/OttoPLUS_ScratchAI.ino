@@ -14,28 +14,21 @@
  * DELETED interrupts and modes to use BTserial Camilo Parra May 2020
  * ADDED BLE communication for Scratch AI Jorge Gonzalez August 2020 https:// ottoschool.com/scratch/
  * ADDED LEDs Neo pixel control for fun by Jorge Gonzalez August 2020
+ * ADDED LEDs RF 433Mhz to control remote 4 Relay module by Jorge Gonzalez November 2020
  *
- */
-#include <EEPROM.h>
-#include <SerialCommand.h> // Library to manage serial commands
-#include <Otto9.h>
-#include "Adafruit_LEDBackpack.h"
-#include <RFTransmitter.h>
-
-Otto9 Otto;  // This is Otto!
-
-/**
- *                   ╭─────────╮
- *                   │  O   O  │
- *                   ├─────────┤
- *                   │         │
- *   RIGHT LEG  3    ├──┬───┬──┤    LEFT LEG  2
- *                   ├──┤   ├──┤
- *   RIGHT FOOT 5  ━━┷━━┙   ┕━━┷━━  LEFT FOOT 4
- */
-
-/**
- * Otto Components
+ *
+ *
+ *                   Otto+ / Otto Eyes                                      Otto Humanoid  
+ *                     ╭─────────╮                                           ╭─────────╮
+ *                     │  O   O  │                                           │  O   O  │
+ *                     ├─────────┤                         RIGHT ARM 7  ━┭───┤  ╭───╮  ├───┮━  LEFT ARM 6
+ *                     │         │                                      ━└───┼──╯   ╰──┼───┘━
+ *     RIGHT LEG  3    ├──┬───┬──┤    LEFT LEG  2                            ├──┬───┬──┤
+ *                     ├──┤   ├──┤                           RIGHT LEG 3     ├──┤   ├──┤     LEFT LEG 2
+ *     RIGHT FOOT 5  ━━┷━━┙   ┕━━┷━━  LEFT FOOT 4                          ━━┷━━┙   ┕━━┷━━
+ *                                                                 RIGHT FOOT 5       LEFT FOOT 4                
+ *
+ * Otto Modules
  *
  * To include code to the module installed in your Otto, uncomment the corresponding line.
  * Remember that the more components you add, the larger the compiled code will be.
@@ -43,64 +36,96 @@ Otto9 Otto;  // This is Otto!
  * Otto Humanoid has two additional servos and an 8x8 LED matrix for his mouth,
  * while Otto Eyes has a 16x8 matrix for his eyes.
  */
+
 #define BLUETOOTH         // Uncomment this line to include code to Bluetooth module
 #define RADIO_FREQUENCY   // Uncomment this line to include code to legs servos
+//#define RADIO_HEAD        // Uncomment this line if using RadioHead library
+//#define VIRTUAL_WIRE      // Unccomment this line if using VirtualWire library
+#define RC_SWITCH         // Uncomment this line if using rc-switch library
+//#define RF_TRANSMITTER    // Uncomment this line if using RFTransmitter
 #define EYES_MATRIX       // Uncomment this line to include code to 16x8 LED matrix
 //#define MOUTH_MATRIX      // Uncomment this line to include code to 8x8 LED matrix
 #define TOUCH_SENSOR      // Uncomment this line to include code to touch sensor
 //#define NOISE_SENSOR      // Uncomment this line to include code to noise sensor
 #define ULTRASONIC_SENSOR // Uncomment this line to include code to ultrasonic sensor
+//#define BATTERY_SENSOR   // Uncomment this line to include code to battery sensor
 #define BUZZER            // Uncomment this line to include code to buzzer
 #define SERVOS            // Uncomment this line to include code to servos
 //#define FUNNY_LED         // Uncomment this line to include code to Funny led
-//#define ASSEMBLY          // Uncomment this line to include code to set in assembly mode
+//#define ASSEMBLY         // Uncomment this line to include code to set in assembly mode 
+
+#include <EEPROM.h>
+#include <SerialCommand.h> // Library to manage serial commands
+#include <Otto9.h>
+#ifdef EYES_MATRIX
+    #include "Adafruit_LEDBackpack.h"
+#endif
+#ifdef RADIO_FREQUENCY
+    #ifdef RF_TRANSMITTER
+        #include <RFTransmitter.h>
+    #endif
+    #ifdef RADIO_HEAD
+        #include <RH_ASK.h>
+        #ifdef RH_HAVE_HARDWARE_SPI
+            #include <SPI.h> // Not actually used but needed to compile
+        #endif
+    #endif
+    #ifdef VIRTUAL_WIRE
+        #include <VirtualWire.h>
+    #endif
+    #ifdef RC_SWITCH
+        #include <RCSwitch.h>
+    #endif
+#endif
+
+Otto9 Otto;  // This is Otto!
 
 /**
  * Reserved PINs
  */
-#define PIN_RX         0
-#define PIN_TX         1
+#define PIN_RX          0
+#define PIN_TX          1
 
 /**
  * Servo PINs
  */
-#define PIN_LEG_LEFT   2 // servo[0]  left leg
-#define PIN_LEG_RIGHT  3 // servo[1]  right leg
-#define PIN_FOOT_LEFT  4 // servo[2]  left foot
-#define PIN_FOOT_RIGHT 5 // servo[3]  right foot
-#define PIN_ARM_LEFT   6 // servo[4]  Left arm
-#define PIN_ARM_RIGHT  7 // servo[5]  Right arm
+#define PIN_LEG_LEFT    2 // servo[0]  left leg
+#define PIN_LEG_RIGHT   3 // servo[1]  right leg
+#define PIN_FOOT_LEFT   4 // servo[2]  left foot
+#define PIN_FOOT_RIGHT  5 // servo[3]  right foot
+#define PIN_ARM_LEFT    6 // servo[4]  Left arm
+#define PIN_ARM_RIGHT   7 // servo[5]  Right arm
 
 /**
  * RF 433Mhz Module
  */
-#define PIN_RF_TX      6 // Check cconflict with arms in Otto Humanoid
-#define PIN_RF_RX      7 // Check cconflict with arms in Otto Humanoid and Assembly Mode
-#define RF_SPEED    2000
+#define PIN_RF_TX       6 // Check cconflict with arms in Otto Humanoid
+#define PIN_RF_RX       7 // Check cconflict with arms in Otto Humanoid and Assembly Mode
+#define RF_SPEED     1000
 
 /**
  * Servo Assembly PIN
  * to help assemble Otto's feet and legs - wire link between pin 7 and GND
  */
-#define PIN_ASSEMBLY   7   // ASSEMBLY pin (7) LOW = assembly    HIGH  = normal operation
+#define PIN_ASSEMBLY    7 // ASSEMBLY pin (7) LOW = assembly    HIGH  = normal operation
 
 /**
  * Ultrasonic PINs
  */
-#define PIN_US_TRIGGER 8  // TRIGGER pin (8)
-#define PIN_US_ECHO    9  // ECHO pin (9)
+#define PIN_US_TRIGGER  8 // TRIGGER pin (8)
+#define PIN_US_ECHO     9 // ECHO pin (9)
 
 /**
  * BLE Module PINs
  */
-#define PIN_BLE_STATE 10
-#define PIN_BLE_TX    11
-#define PIN_BLE_RX    12
+#define PIN_BLE_STATE  10
+#define PIN_BLE_TX     11
+#define PIN_BLE_RX     12
 
 /**
  * Buzzer PIN
  */
-#define PIN_BUZZER    13 // BUZZER pin (13)
+#define PIN_BUZZER     13 // BUZZER pin (13)
 
 /**
  * Touch Sensor or Push Button
@@ -116,24 +141,24 @@ Otto9 Otto;  // This is Otto!
 #define LED_DIRECTION   1 // LED MATRIX CONNECTOR position (orientation) 1 = top 2 = bottom 3 = left 4 = right  DEFAULT = 1
 
 /**
- * Eyes LED Matrix PINs
- */
-#define SCL
-#define SDA
-
-/**
  * Sound Sensor PIN
  */
 #define PIN_NOISE      A6  // SOUND SENSOR   ANALOG pin (A6)
 
 /**
- * Global Variables
+ * Eyes LED Matrix PINs
+ */
+#define SCL // CLOCK
+#define SDA // DATA
+
+/**
+ * Global Variable1
  */
 
 SoftwareSerial BTserial = SoftwareSerial(PIN_BLE_TX, PIN_BLE_RX); //  TX  RX of the Bluetooth
 SerialCommand SCmd(BTserial);  // The SerialCommand object
 
-const char programID[] = "OttoPLUS_Scratch_V1"; // Each program will have a ID
+const char programID[] = "OttoScratchAI-v1"; // Each program will have a ID
 const char factory_name = '$'; // Factory name
 const char first_name = '#'; // First name
 
@@ -141,14 +166,22 @@ const char first_name = '#'; // First name
  * Eyes LED Matrix
  */
 #ifdef EYES_MATRIX
-Adafruit_8x16matrix eyesMatrix = Adafruit_8x16matrix();
+    Adafruit_8x16matrix eyesMatrix = Adafruit_8x16matrix();
 #endif
 
 /**
  * RF 433Mhz Module
  */
 #ifdef RADIO_FREQUENCY
-RFTransmitter transmitter(PIN_RF_TX, 1);
+    #ifdef RF_TRANSMITTER
+        RFTransmitter transmitter(PIN_RF_TX, 1);
+    #endif
+    #ifdef RADIO_HEAD
+        RH_ASK driver(RF_SPEED, PIN_RF_RX, PIN_RF_TX, 0);
+    #endif
+    #ifdef RC_SWITCH
+        RCSwitch rcSwitch = RCSwitch();
+    #endif
 #endif
 
 /**
@@ -181,14 +214,21 @@ unsigned long int mouthMatrix;
 static const uint8_t PROGMEM
 logo_bmp[]     = { B01111110,B10000001,B10111001,B10101001,B10111001,B10010001,B10111001,B10010001,B10010001,B10111001,B10010001,B10111001,B10101001,B10111001,B10000001,B01111110},
 happy_bmp[]    = { B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000,B00000000,B00111100,B00000010,B00000010,B00000010,B00000010,B00111100,B00000000},
-eyes_bmp[]    = { B00000000,B00111100,B01111110,B01100110,B01100110,B01111110,B00111100,B00000000,B00000000,B00111100,B01111110,B01100110,B01100110,B01111110,B00111100,B00000000},
-sad_bmp[]      = { B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000,B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000},
+eyes_bmp[]     = { B00000000,B00111100,B01111110,B01100110,B01100110,B01111110,B00111100,B00000000,B00000000,B00111100,B01111110,B01100110,B01100110,B01111110,B00111100,B00000000},
+//touch_bmp[]    = { B00000000,B00111100,B01001110,B01001110,B01111110,B01111110,B00111100,B00000000,B00000000,B00111100,B01001110,B01001110,B01111110,B01111110,B00111100,B00000000},
+touch_bmp[]    = { B00000000,B00111100,B01110010,B01110010,B01111110,B01111110,B00111100,B00000000,B00000000,B00111100,B01110010,B01110010,B01111110,B01111110,B00111100,B00000000},
+sad_bmp[]      = { B00000000,B00110000,B01111000,B01001100,B01001110,B01111110,B00111100,B00000000,B00000000,B00111100,B01111110,B01001110,B01001100,B01111000,B00110000,B00000000},
+//sad_bmp[]      = { B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000,B00000000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00000000},
 xx_bmp[]       = { B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00010100,B00001000,B00010100,B00100010,B00000000},
 XX_bmp[]       = { B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001,B00000000,B00000000,B01000001,B00100010,B00010100,B00001000,B00010100,B00100010,B01000001},
-angry_bmp[]    = { B00000000,B00011110,B00111100,B01111000,B01110000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B01110000,B01111000,B00111100,B00011110,B00000000},
+//angry_bmp[]    = { B00000000,B00011110,B00111100,B01111000,B01110000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B01110000,B01111000,B00111100,B00011110,B00000000},
+angry_bmp[]    = { B00000000,B00111100,B01111110,B01100110,B01100100,B01111000,B00110000,B00000000,B00000000,B00110000,B01111000,B01100100,B01100110,B01111110,B00111100,B00000000},
 angry2_bmp[]   = { B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000,B00000000,B00000000,B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000},
 sleep_bmp[]    = { B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000,B00000000,B00000000,B00000000,B00100010,B00110010,B00101010,B00100110,B00100010,B00000000},
-freetful_bmp[] = { B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000,B00000000,B00000000,B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000},
+//freetful_bmp[] = { B00000000,B00100000,B00010000,B00001000,B00000100,B00000010,B00000000,B00000000,B00000000,B00000000,B00000010,B00000100,B00001000,B00010000,B00100000,B00000000},
+//freetful_bmp[] = { B00000000,B00011000,B00011000,B00000000,B00000000,B00011000,B00011000,B00000000,B00000000,B00011000,B00011000,B00000000,B00000000,B00011000,B00011000,B00000000},
+//freetful_bmp[] = { B00000000,B00111100,B01100110,B01100110,B01110100,B01111000,B00110000,B00000000,B00000000,B00111100,B01100110,B01100110,B01111110,B01111110,B00111100,B00000000},
+freetful_bmp[] = { B00000000,B00111100,B01100110,B01100110,B01111100,B01111000,B00110000,B00000000,B00000000,B00111100,B01100110,B01100110,B01111100,B01111000,B00110000,B00000000},
 love_bmp[]     = { B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000,B00000000,B00001100,B00011110,B00111100,B00111100,B00011110,B00001100,B00000000},
 confused_bmp[] = { B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000,B00000000,B01111100,B10000010,B10111010,B10101010,B10001010,B01111000,B00000000},
 wave_bmp[]     = { B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000,B00000000,B00100000,B00010000,B00001000,B00010000,B00100000,B00010000,B00000000},
@@ -229,13 +269,13 @@ void setup() {
     // Mouth LED Matrix initialization
 #ifdef MOUTH_MATRIX
     Otto.initMATRIX(PIN_MOUTH_DIN, PIN_MOUTH_CS, PIN_MOUTH_CLK, LED_DIRECTION);   // set up Matrix display pins = DIN pin,CS pin, CLK pin, MATRIX orientation
-    Otto.matrixIntensity(15);// set up Matrix display intensity
+    Otto.matrixIntensity(5); // set up Matrix display intensity
 #endif
 
     // Eyes LED Matrix initialization
 #ifdef EYES_MATRIX
-    eyesMatrix.begin(0x70);  // pass in the address
-    eyesMatrix.setBrightness(1);
+    eyesMatrix.begin(0x70); // pass in the address
+    eyesMatrix.setBrightness(0);
 #endif
 
     // Assembly Mode initialization
@@ -249,26 +289,45 @@ void setup() {
 
     // RF 433Mhx Module initialization
 #ifdef RADIO_FREQUENCY
+    #ifdef VIRTUAL_WIRE
+        vw_set_tx_pin(PIN_RF_TX);
+        vw_set_rx_pin(PIN_RF_RX);
+        vw_setup(RF_SPEED);	 // Bits per sec
+        if (!driver.init())
+            Serial.println("init failed");
+    #endif
+    #ifdef RC_SWITCH
+        // Transmitter is connected to Arduino Pin #10  
+        rcSwitch.enableTransmit(PIN_RF_TX);
+        // Optional set protocol (default is 1, will work for most outlets)
+        rcSwitch.setProtocol(1);
+        // Optional set pulse length.
+        //rcSwitch.setPulseLength(350);  // Default 350 us
+        // Optional set number of transmission repetitions.
+        //rcSwitch.setRepeatTransmit(4); // Default 4
+    #endif
 #endif
 
-    // Setup callbacks for SerialCommand RECEIVE commands
+
+    // Setup callbacks for SerialCommand to Actuators
     SCmd.addCommand("S", receiveStop);      //  sendAck & sendFinalAck
-    SCmd.addCommand("L", receiveLED);       //  sendAck & sendFinalAck
+    //SCmd.addCommand("L", receiveMouth);     //  sendAck & sendFinalAck
+    //SCmd.addCommand("O", receiveEyes);      //  sendAck & sendFinalAck
     SCmd.addCommand("T", receiveBuzzer);    //  sendAck & sendFinalAck
     SCmd.addCommand("K", receiveSing);      //  sendAck & sendFinalAck
     SCmd.addCommand("H", receiveGesture);   //  sendAck & sendFinalAck
     SCmd.addCommand("M", receiveMovement);  //  sendAck & sendFinalAck
-    SCmd.addCommand("C", receiveTrims);     //  sendAck & sendFinalAck
-    SCmd.addCommand("G", receiveServo);     //  sendAck & sendFinalAck
-    SCmd.addCommand("J", receiveMode);      //  sendAck & sendFinalAck
-    SCmd.addCommand("R", receiveName);      //  sendAck & sendFinalAck
+    //SCmd.addCommand("C", receiveTrims);     //  sendAck & sendFinalAck
+    //SCmd.addCommand("G", receiveServo);     //  sendAck & sendFinalAck
+    //SCmd.addCommand("J", receiveMode);      //  sendAck & sendFinalAck
+    //SCmd.addCommand("R", receiveName);      //  sendAck & sendFinalAck
     SCmd.addCommand("F", receiveRelay);     //  sendAck & sendFinalAck
 
-    // Setup callbacks for SerialCommand REQUEST commands
-    SCmd.addCommand("E", requestName);
-    SCmd.addCommand("D", requestDistance);
-    SCmd.addCommand("N", requestNoise);
-    SCmd.addCommand("I", requestProgramId);
+    // Setup callbacks for SerialCommand to Sensors
+    //SCmd.addCommand("E", requestName);
+    //SCmd.addCommand("D", requestDistance);
+    //SCmd.addCommand("N", requestNoise);
+    //SCmd.addCommand("I", requestProgramId);
 
     SCmd.addDefaultHandler(receiveStop);
 
@@ -283,7 +342,9 @@ void setup() {
         }
     }
     // Smile for a happy Otto :)
+#ifdef MOUTH_MATRIX
     Otto.putMouth(smile);
+#endif
     Otto.sing(S_happy);
     delay(200);
 
@@ -294,12 +355,16 @@ void setup() {
         Otto.jump(1, 700);
         delay(200);
         Otto.shakeLeg(1, duration, 1);
+#ifdef MOUTH_MATRIX
         Otto.putMouth(smallSurprise);
+#endif
         Otto.swing(2, 800, 20);
         Otto.home();
     }
 
+#ifdef MOUTH_MATRIX
     Otto.putMouth(happyOpen);
+#endif
     previousMillis = millis();
     // if Pin 7 is LOW then place OTTO's servos in home mode to enable easy assembly,
     // when you have finished assembling Otto, remove the link between pin 7 and GND
@@ -360,12 +425,12 @@ void receiveStop() {
 /**
  * Function to receive LED commands
  */
-void receiveLED() {
+void receiveMouth() {
 #ifdef MOUTH_MATRIX
     // sendAck & stop if necessary
     sendAck();
     Otto.home();
-    // Examples of receiveLED Bluetooth commands
+    // Examples of receiveMouth Bluetooth commands
     // L 000000001000010100100011000000000
     char *arg;
     char *endstr;
@@ -373,14 +438,55 @@ void receiveLED() {
     Serial.println(arg);
     if (arg != NULL) {
         mouthMatrix = strtoul(arg, &endstr, 2); // Converts a char string to unsigned long integer
+#ifdef MOUTH_MATRIX
         Otto.putMouth(mouthMatrix, false);
+#endif
     } else {
+#ifdef MOUTH_MATRIX
         Otto.putMouth(xMouth);
+#endif
         delay(2000);
+#ifdef MOUTH_MATRIX
         Otto.clearMouth();
+#endif
     }
     sendFinalAck();
 #endif
+}
+
+/**
+ * Function to receive Eyes Matrix LED commands
+ */
+void receiveEyes() {
+  Serial.println("EYES");
+ /*
+#ifdef EYES_MATRIX
+    // sendAck & stop if necessary
+    sendAck();
+    Otto.home();
+    // Examples of receiveMouth Bluetooth commands
+    // O 0000000010000101001000110000000000000000000000000000000000000000
+    char *arg;
+    char *endstr;
+    arg = SCmd.next();
+    Serial.println(arg);
+    if (arg != NULL) {
+        //mouthMatrix = strtoul(arg, &endstr, 2); // Converts a char string to unsigned long integer
+#ifdef EYES_MATRIX
+        //Otto.putMouth(mouthMatrix, false);
+#endif
+    } else {
+#ifdef EYES_MATRIX
+        //Otto.putMouth(xMouth);
+#endif
+        delay(2000);
+#ifdef EYES_MATRIX
+        //Otto.clearMouth();
+#endif
+    }
+    sendFinalAck();
+#endif
+*/
 }
 
 /**
@@ -405,9 +511,13 @@ void receiveBuzzer() {
     if (arg != NULL) duration = atoi(arg);  // Converts a char string to an integer
     else error = true;
     if (error == true) {
+#ifdef MOUTH_MATRIX
         Otto.putMouth(xMouth);
+#endif
         delay(2000);
+#ifdef MOUTH_MATRIX
         Otto.clearMouth();
+#endif
     } else Otto._tone(frec, duration, 1);
     sendFinalAck();
 #endif
@@ -445,9 +555,13 @@ void receiveTrims() {
     if (arg != NULL) trimFootRight = atoi(arg);  // Converts a char string to an integer
     else error = true;
     if (error == true) {
+#ifdef MOUTH_MATRIX
         Otto.putMouth(xMouth);
+#endif
         delay(2000);
+#ifdef MOUTH_MATRIX
         Otto.clearMouth();
+#endif
 
     } else { // Save it on EEPROM
         Otto.setTrims(trimLegLeft, trimLegRIGHT, trimFootLeft, trimFootRight);
@@ -490,9 +604,13 @@ void receiveServo() {
         servoFootRight = atoi(arg);  // Converts a char string to an integer
     } else error = true;
     if (error == true) {
+#ifdef MOUTH_MATRIX
         Otto.putMouth(xMouth);
+#endif
         delay(2000);
+#ifdef MOUTH_MATRIX
         Otto.clearMouth();
+#endif
     } else { // Update Servo:
         int servoPos[4] = {servoLegLeft, servoLegRight, servoFootLeft, servoFootRight};
         Otto._moveServos(200, servoPos);   // Move 200ms
@@ -517,9 +635,13 @@ void receiveMovement() {
     arg = SCmd.next(); // Move ID
     if (arg != NULL) moveID = atoi(arg);
     else {
+#ifdef MOUTH_MATRIX
         Otto.putMouth(xMouth);
+#endif
         delay(2000);
+#ifdef MOUTH_MATRIX
         Otto.clearMouth();
+#endif
         moveID = 0; // stop
     }
 
@@ -898,12 +1020,16 @@ void receiveMode() {
     else delay(2000);
     switch (modeId) {
         case 0: // J 0
+#ifdef MOUTH_MATRIX
             Otto.putMouth(0);
+#endif
             Otto.sing(S_cuddly);
             Otto.home();
             break;
         case 1: // J 1
+#ifdef MOUTH_MATRIX
             Otto.putMouth(one);
+#endif
             randomDance = random(5, 21); // 5,20
             if ((randomDance > 14) && (randomDance < 19)) {
                 randomSteps = 1;
@@ -912,17 +1038,25 @@ void receiveMode() {
                 randomSteps = random(3, 6); // 3,5
                 duration = 1000;
             }
+#ifdef MOUTH_MATRIX
             Otto.putMouth(random(10, 21));
+#endif
             for (int i = 0; i < randomSteps; i++) move(randomDance);
             break;
         case 2: // J 2
+#ifdef MOUTH_MATRIX
             Otto.putMouth(two);
+#endif
             break;
         case 3: // J 3
+#ifdef MOUTH_MATRIX
             Otto.putMouth(three);
+#endif
             break;
         case 4: // J 4
+#ifdef MOUTH_MATRIX
             Otto.putMouth(four);
+#endif
             break;
         default:
             break;
@@ -939,16 +1073,20 @@ void receiveRelay() {
     int onoff = 0;
 
     sendAck();
-    // F relayNumber ON/OFF
-    // F  1 1
+    // F relayNumber
+    // F  1
     char *arg;
 
     arg = SCmd.next(); // Relay Number
     if (arg != NULL) relayNumber = atoi(arg);
     else {
+    #ifdef MOUTH_MATRIX
         Otto.putMouth(xMouth);
+    #endif
         delay(2000);
+    #ifdef MOUTH_MATRIX
         Otto.clearMouth();
+    #endif
         moveID = 0; // stop
     }
 
@@ -957,13 +1095,52 @@ void receiveRelay() {
     else onoff = 0;
 
     Serial.print("RF: ");
-    Serial.println(relayNumber);
+    Serial.print(relayNumber);
+    Serial.print(" ");
     Serial.println(onoff);
+
+
+    //char *msg = "F Hola Otto!";
+    char msg[6] = "F 0 0";
+    msg[2] = relayNumber + '0';
+    msg[4] = onoff + '0';
+
+    #ifdef RF_TRANSMITTER
+        int i;
+        for (i = 0; i < 5; i++) {
+            transmitter.send((byte *)msg, strlen(msg) + 1);
+            delay(300);
+        }
+    #endif
+
+    #ifdef VIRTUAL_WIRE
+        vw_send((uint8_t *)msg, 7);
+        vw_wait_tx(); // Wait until the whole message is gone
+        delay(3000);
+    #endif
+
+    #ifdef RADIO_HEAD
+        driver.send((uint8_t *)msg, strlen(msg));
+        driver.waitPacketSent();
+    #endif
+    #ifdef RC_SWITCH
+        Serial.println("Sending Message...");
+        /**
+         * Switch a remote switch on/off (Type B with two rotary/sliding switches)
+         *
+         * @param nAddressCode  Number of the switch group (1..4)
+         * @param nChannelCode  Number of the switch itself (1..4)
+         */
+        onoff = 1;
+        if (onoff == 1) {
+            rcSwitch.switchOn(1, relayNumber);                    
+        } else {
+            rcSwitch.switchOff(1, relayNumber);                    
+        }
+    #endif
 
     BTserial.println("OK RF");
 
-    char *msg = "Hello World!";
-    transmitter.send((byte *)msg, strlen(msg) + 1);
 #endif
 }
 
@@ -1052,7 +1229,7 @@ void requestNoise() {
  * Function to send battery voltage percent
  */
 void requestBattery() {
-#ifdef BATTERY_SENSOR
+#ifdef BATTERY
     Otto.home();  // stop if necessary
     // The first read of the battery is often a wrong reading, so we will discard this value.
     double batteryLevel = Otto.getBatteryLevel();
@@ -1108,7 +1285,9 @@ void sendFinalAck() {
 void ButtonPushed() {
     if (!buttonPushed) {
         buttonPushed = true;
+#ifdef MOUTH_MATRIX
         Otto.putMouth(smallSurprise);
+#endif
     }
 }
 
@@ -1120,13 +1299,13 @@ void checkIfTouched() {
     currentTouchState = digitalRead(PIN_BUTTON);
     if (lastTouchState == LOW && currentTouchState == HIGH) {
     #ifdef EYES_MATRIX
-        eyesMatrix.clear(); eyesMatrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  eyesMatrix.writeDisplay();
+        eyesMatrix.clear(); eyesMatrix.drawBitmap(0, 0, + touch_bmp , 8, 16, LED_ON);  eyesMatrix.writeDisplay();
     #endif
-        Otto.sing(S_buttonPushed);
+        //Otto.sing(S_buttonPushed);
+        delay(500);
     #ifdef EYES_MATRIX
         eyesMatrix.clear(); eyesMatrix.drawBitmap(0, 0, + eyes_bmp , 8, 16, LED_ON);  eyesMatrix.writeDisplay();
     #endif
-        Serial.println("The sensor is touched");
         BTserial.println(F("T:ACK"));
     }
     lastTouchState = currentTouchState;

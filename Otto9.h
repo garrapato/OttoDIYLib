@@ -7,11 +7,17 @@
 #include <Servo.h>
 #include <Oscillator.h>
 #include <EEPROM.h>
-#include <US.h>
+#ifdef ULTRASONIC_SENSOR
+    #include <US.h>
+#endif
 
-#include "BatReader9.h"
+#ifdef BATTERY_SENSOR
+    #include "BatReader9.h"
+#endif
 #include "Otto_Matrix9.h"
-#include "Otto_mouth9.h"
+#ifdef MOUTH_MATRIX
+    #include "Otto_mouth9.h"
+#endif
 #include "Otto_sound9.h"
 #include "Otto_gestures9.h"
 #include <TimerFreeTone.h>
@@ -72,7 +78,9 @@ class Otto9
     void flapping(float steps=1, int T=1000, int h=20, int dir=FORWARD);
 
     //-- Sensors functions
+#ifdef ULTRASONIC_SENSOR
     float getDistance(); //US sensor
+#endif
     int getNoise();      //Noise Sensor
 
     //-- Battery
@@ -98,9 +106,13 @@ class Otto9
     void writeText (const char * s, byte scrollspeed);
   private:
    
+#ifdef BATTERY_SENSOR
     BatReader9 battery;
+#endif
     Oscillator servo[4];
+#ifdef ULTRASONIC_SENSOR
     US us;
+#endif
     Otto_Matrix ledmatrix;
     int servo_pins[4];
     int servo_trim[4];
