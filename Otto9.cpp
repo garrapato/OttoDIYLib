@@ -32,9 +32,7 @@ void Otto9::init(int YL, int YR, int RL, int RR, bool load_calibration, int Nois
   for (int i = 0; i < 4; i++) servo_position[i] = 90;
 
   //US sensor init with the pins:
-#ifdef ULTRASONIC_SENSOR
   us.init(USTrigger, USEcho);
-#endif
 
   //Buzzer & noise sensor pins: 
   pinBuzzer = Buzzer;
@@ -49,9 +47,7 @@ void Otto9::initDC(int NoiseSensor, int Buzzer, int USTrigger, int USEcho) {
   isOttoResting=false;
 
   //US sensor init with the pins:
-#ifdef ULTRASONIC_SENSOR
   us.init(USTrigger, USEcho);
-#endif
 
   //Buzzer & noise sensor pins: 
   pinBuzzer = Buzzer;
@@ -67,11 +63,9 @@ ledmatrix.init( DIN, CS, CLK, 1, rotate);   // set up Matrix display
 void Otto9::matrixIntensity(int intensity){
 ledmatrix.setIntensity(intensity);
 }
-#ifdef BATTERY_SENSOR
 void Otto9::initBatLevel(int batteryPIN){
   battery.init(batteryPIN);
 }
-#endif
 
 ///////////////////////////////////////////////////////////////////
 //-- ATTACH & DETACH FUNCTIONS ----------------------------------//
@@ -581,12 +575,10 @@ void Otto9::flapping(float steps, int T, int h, int dir){
 //---------------------------------------------------------
 //-- Otto getDistance: return Otto's ultrasonic sensor measure
 //---------------------------------------------------------
-#ifdef ULTRASONIC_SENSOR
 float Otto9::getDistance(){
 
   return us.read();
 }
-#endif
 
 
 //---------------------------------------------------------
@@ -614,7 +606,6 @@ int Otto9::getNoise(){
 //---------------------------------------------------------
 //-- Otto getBatteryLevel: return battery voltage percent
 //---------------------------------------------------------
-#ifdef BATTERY_SENSOR
 double Otto9::getBatteryLevel(){
 
   //The first read of the batery is often a wrong reading, so we will discard this value. 
@@ -649,12 +640,12 @@ double Otto9::getBatteryVoltage(){
 
     return batteryLevel;
 }
-#endif
 
 
 ///////////////////////////////////////////////////////////////////
 //-- MOUTHS & ANIMATIONS ----------------------------------------//
 ///////////////////////////////////////////////////////////////////
+#ifdef MOUTH_MATRIX
 void Otto9::setLed(byte X, byte Y, byte value){
   ledmatrix.setDot( X,  Y, value);
 }
@@ -668,7 +659,6 @@ ledmatrix.writeFull(PROGMEM_getAnything (&Gesturetable[aniMouth][index]));
 }
 
 //EXAMPLE putMouth(smile);
-#ifdef MOUTH_MATRIX
 void Otto9::putMouth(unsigned long int mouth, bool predefined){
   if (predefined){
 // Here a direct entry into the Progmem Mouthttable is used!!
@@ -679,15 +669,12 @@ ledmatrix.writeFull(PROGMEM_getAnything(&Mouthtable[mouth]));
     ledmatrix.writeFull(mouth);
   }
 }
-#endif
 
 
-#ifdef MOUTH_MATRIX
 void Otto9::clearMouth(){
 
   ledmatrix.clearMatrix();
 }
-#endif
 
 void Otto9::writeText(const char * s, byte scrollspeed){
  int a ;
@@ -714,6 +701,7 @@ void Otto9::writeText(const char * s, byte scrollspeed){
   }
 
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////
 //-- SOUNDS -----------------------------------------------------//
@@ -884,7 +872,7 @@ void Otto9::playGesture(int gesture){
     case OttoHappy: 
         _tone(note_E5,50,30);
 #ifdef MOUTH_MATRIX
-	putMouth(smile);
+        putMouth(smile);
 #endif
         sing(S_happy_short);
         swing(1,800,20); 
@@ -892,39 +880,39 @@ void Otto9::playGesture(int gesture){
 
         home();
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
 
     case OttoSuperHappy:
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
         sing(S_happy);
 #ifdef MOUTH_MATRIX
-	putMouth(happyClosed);
+        putMouth(happyClosed);
 #endif
         tiptoeSwing(1,500,20);
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
         sing(S_superHappy);
 #ifdef MOUTH_MATRIX
-	putMouth(happyClosed);
+        putMouth(happyClosed);
 #endif
         tiptoeSwing(1,500,20); 
 
         home();  
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
 
     case OttoSad: 
 #ifdef MOUTH_MATRIX
-	putMouth(sad);
+        putMouth(sad);
 #endif
         gesturePOSITION[0] = 110;//int sadPos[6]=      {110, 70, 20, 160};
         gesturePOSITION[1] = 70;
@@ -933,32 +921,30 @@ void Otto9::playGesture(int gesture){
         _moveServos(700, gesturePOSITION);     
         bendTones(880, 830, 1.02, 20, 200);
 #ifdef MOUTH_MATRIX
-	putMouth(sadClosed);
+        putMouth(sadClosed);
 #endif
         bendTones(830, 790, 1.02, 20, 200);  
 #ifdef MOUTH_MATRIX
-	putMouth(sadOpen);
+        putMouth(sadOpen);
 #endif
-#ifdef MOUTH_MATRIX
         bendTones(790, 740, 1.02, 20, 200);
-#endif
 #ifdef MOUTH_MATRIX
-	putMouth(sadClosed);
+        putMouth(sadClosed);
 #endif
         bendTones(740, 700, 1.02, 20, 200);
 #ifdef MOUTH_MATRIX
-	putMouth(sadOpen);
+        putMouth(sadOpen);
 #endif
         bendTones(700, 669, 1.02, 20, 200);
 #ifdef MOUTH_MATRIX
-	putMouth(sad);
+        putMouth(sad);
 #endif
         delay(500);
 
         home();
         delay(300);
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
@@ -970,28 +956,38 @@ void Otto9::playGesture(int gesture){
           gesturePOSITION[3] = 120;
         _moveServos(700, gesturePOSITION);     
         for(int i=0; i<4;i++){
+#ifdef MOUTH_MATRIX
           putAnimationMouth(dreamMouth,0);
+#endif
           bendTones (100, 200, 1.04, 10, 10);
+#ifdef MOUTH_MATRIX
           putAnimationMouth(dreamMouth,1);
+#endif
           bendTones (200, 300, 1.04, 10, 10);  
+#ifdef MOUTH_MATRIX
           putAnimationMouth(dreamMouth,2);
+#endif
           bendTones (300, 500, 1.04, 10, 10);   
           delay(500);
+#ifdef MOUTH_MATRIX
           putAnimationMouth(dreamMouth,1);
+#endif
           bendTones (400, 250, 1.04, 10, 1); 
+#ifdef MOUTH_MATRIX
           putAnimationMouth(dreamMouth,0);
+#endif
           bendTones (250, 100, 1.04, 10, 1); 
           delay(500);
         } 
 
 #ifdef MOUTH_MATRIX
-	putMouth(lineMouth);
+        putMouth(lineMouth);
 #endif
         sing(S_cuddly);
 
         home();  
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
@@ -1004,11 +1000,11 @@ void Otto9::playGesture(int gesture){
         _moveServos(500,gesturePOSITION);
         delay(300);     
 #ifdef MOUTH_MATRIX
-	putMouth(lineMouth);
+        putMouth(lineMouth);
 #endif
         sing(S_fart1);  
 #ifdef MOUTH_MATRIX
-	putMouth(tongueOut);
+        putMouth(tongueOut);
 #endif
         delay(250);
         gesturePOSITION[0] = 90;// int fartPos_2[6]=   {90, 90, 80, 122};
@@ -1018,11 +1014,11 @@ void Otto9::playGesture(int gesture){
         _moveServos(500,gesturePOSITION);
         delay(300);
 #ifdef MOUTH_MATRIX
-	putMouth(lineMouth);
+        putMouth(lineMouth);
 #endif
         sing(S_fart2); 
 #ifdef MOUTH_MATRIX
-	putMouth(tongueOut);
+        putMouth(tongueOut);
 #endif
         delay(250);
         gesturePOSITION[0] = 90;// int fartPos_3[6]=   {90, 90, 145, 80};
@@ -1032,18 +1028,18 @@ void Otto9::playGesture(int gesture){
         _moveServos(500,gesturePOSITION);
         delay(300);
 #ifdef MOUTH_MATRIX
-	putMouth(lineMouth);
+        putMouth(lineMouth);
 #endif
         sing(S_fart3);
 #ifdef MOUTH_MATRIX
-	putMouth(tongueOut);
+        putMouth(tongueOut);    
 #endif
         delay(300);
 
         home(); 
         delay(500); 
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
@@ -1055,21 +1051,21 @@ void Otto9::playGesture(int gesture){
           gesturePOSITION[3] = 90;
         _moveServos(300, gesturePOSITION); 
 #ifdef MOUTH_MATRIX
-	putMouth(confused);
+        putMouth(confused);
 #endif
         sing(S_confused);
         delay(500);
 
         home();  
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
 
     case OttoLove:
 #ifdef MOUTH_MATRIX
-	putMouth(heart);
+        putMouth(heart);
 #endif
         sing(S_cuddly);
         crusaito(2,1500,15,1);
@@ -1077,7 +1073,7 @@ void Otto9::playGesture(int gesture){
         home(); 
         sing(S_happy_short);  
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
@@ -1089,7 +1085,7 @@ void Otto9::playGesture(int gesture){
           gesturePOSITION[3] = 110;
         _moveServos(300, gesturePOSITION); 
 #ifdef MOUTH_MATRIX
-	putMouth(angry);
+        putMouth(angry);
 #endif
 
         _tone(note_A5,100,30);
@@ -1114,20 +1110,20 @@ void Otto9::playGesture(int gesture){
 
         home();  
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
 
     case OttoFretful: 
 #ifdef MOUTH_MATRIX
-	putMouth(angry);
+        putMouth(angry);
 #endif
         bendTones(note_A5, note_D6, 1.02, 20, 4);
         bendTones(note_A5, note_E5, 1.02, 20, 4);
         delay(300);
 #ifdef MOUTH_MATRIX
-	putMouth(lineMouth);
+        putMouth(lineMouth);
 #endif
 
         for(int i=0; i<4; i++){
@@ -1140,13 +1136,13 @@ void Otto9::playGesture(int gesture){
         }
 
 #ifdef MOUTH_MATRIX
-	putMouth(angry);
+        putMouth(angry);
 #endif
         delay(500);
 
         home();  
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
@@ -1162,18 +1158,22 @@ void Otto9::playGesture(int gesture){
           int noteM = 400; 
 
             for(int index = 0; index<6; index++){
+#ifdef MOUTH_MATRIX
               putAnimationMouth(adivinawi,index);
+#endif
               bendTones(noteM, noteM+100, 1.04, 10, 10);    //400 -> 1000 
               noteM+=100;
             }
 
 #ifdef MOUTH_MATRIX
-	clearMouth();
+            clearMouth();
 #endif
             bendTones(noteM-100, noteM+100, 1.04, 10, 10);  //900 -> 1100
 
             for(int index = 0; index<6; index++){
+#ifdef MOUTH_MATRIX
               putAnimationMouth(adivinawi,index);
+#endif
               bendTones(noteM, noteM+100, 1.04, 10, 10);    //1000 -> 400 
               noteM-=100;
             }
@@ -1181,7 +1181,7 @@ void Otto9::playGesture(int gesture){
  
         delay(300);
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
@@ -1194,40 +1194,48 @@ void Otto9::playGesture(int gesture){
             int noteW = 500; 
 
             for(int index = 0; index<10; index++){
+#ifdef MOUTH_MATRIX
               putAnimationMouth(wave,index);
+#endif
               bendTones(noteW, noteW+100, 1.02, 10, 10); 
               noteW+=101;
             }
             for(int index = 0; index<10; index++){
+#ifdef MOUTH_MATRIX
               putAnimationMouth(wave,index);
+#endif
               bendTones(noteW, noteW+100, 1.02, 10, 10); 
               noteW+=101;
             }
             for(int index = 0; index<10; index++){
+#ifdef MOUTH_MATRIX
               putAnimationMouth(wave,index);
+#endif
               bendTones(noteW, noteW-100, 1.02, 10, 10); 
               noteW-=101;
             }
             for(int index = 0; index<10; index++){
+#ifdef MOUTH_MATRIX
               putAnimationMouth(wave,index);
+#endif
               bendTones(noteW, noteW-100, 1.02, 10, 10); 
               noteW-=101;
             }
         }    
 
 #ifdef MOUTH_MATRIX
-	clearMouth();
+        clearMouth();
 #endif
         delay(100);
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
     break;
 
     case OttoVictory:
         
 #ifdef MOUTH_MATRIX
-	putMouth(smallSurprise);
+        putMouth(smallSurprise);
 #endif
         //final pos   = {90,90,150,30}
         for (int i = 0; i < 60; ++i){
@@ -1237,7 +1245,7 @@ void Otto9::playGesture(int gesture){
         }
 
 #ifdef MOUTH_MATRIX
-	putMouth(bigSurprise);
+        putMouth(bigSurprise);
 #endif
         //final pos   = {90,90,90,90}
         for (int i = 0; i < 60; ++i){
@@ -1247,31 +1255,29 @@ void Otto9::playGesture(int gesture){
         }
 
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
         //SUPER HAPPY
         //-----
         tiptoeSwing(1,500,20);
         sing(S_superHappy);
 #ifdef MOUTH_MATRIX
-	putMouth(happyClosed);
+        putMouth(happyClosed);
 #endif
         tiptoeSwing(1,500,20); 
         //-----
 
         home();
 #ifdef MOUTH_MATRIX
-	clearMouth();
-#endif
-#ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        clearMouth();
+        putMouth(happyOpen);
 #endif
 
     break;
 
     case OttoFail:
 #ifdef MOUTH_MATRIX
-	putMouth(sadOpen);
+        putMouth(sadOpen);
 #endif
          gesturePOSITION[0] = 90;//int bendPos_1[6]=   {90, 90, 70, 35};
         gesturePOSITION[1] = 90;
@@ -1280,7 +1286,7 @@ void Otto9::playGesture(int gesture){
         _moveServos(300,gesturePOSITION);
         _tone(900,200,1);
 #ifdef MOUTH_MATRIX
-	putMouth(sadClosed);
+        putMouth(sadClosed);
 #endif
         gesturePOSITION[0] = 90;//int bendPos_2[6]=   {90, 90, 55, 35};
         gesturePOSITION[1] = 90;
@@ -1289,7 +1295,7 @@ void Otto9::playGesture(int gesture){
         _moveServos(300,gesturePOSITION);
         _tone(600,200,1);
 #ifdef MOUTH_MATRIX
-	putMouth(confused);
+        putMouth(confused);
 #endif
         gesturePOSITION[0] = 90;//int bendPos_3[6]=   {90, 90, 42, 35};
         gesturePOSITION[1] = 90;
@@ -1303,7 +1309,7 @@ void Otto9::playGesture(int gesture){
           gesturePOSITION[3] = 35;
         _moveServos(300,gesturePOSITION);
 #ifdef MOUTH_MATRIX
-	putMouth(xMouth);
+        putMouth(xMouth);
 #endif
 
         detachServos();
@@ -1311,10 +1317,10 @@ void Otto9::playGesture(int gesture){
         
         delay(600);
 #ifdef MOUTH_MATRIX
-	clearMouth();
+        clearMouth();
 #endif
 #ifdef MOUTH_MATRIX
-	putMouth(happyOpen);
+        putMouth(happyOpen);
 #endif
         home();
 

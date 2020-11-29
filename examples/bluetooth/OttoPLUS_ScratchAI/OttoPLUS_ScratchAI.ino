@@ -37,25 +37,25 @@
  * while Otto Eyes has a 16x8 matrix for his eyes.
  */
 
-#define BLUETOOTH         // Uncomment this line to include code to Bluetooth module
-//#define RADIO_FREQUENCY   // Uncomment this line to include code to legs servos
-//#define RADIO_HEAD        // Uncomment this line if using RadioHead library
-//#define VIRTUAL_WIRE      // Unccomment this line if using VirtualWire library
-#define RC_SWITCH         // Uncomment this line if using rc-switch library
-//#define RF_TRANSMITTER    // Uncomment this line if using RFTransmitter
-#define EYES_MATRIX       // Uncomment this line to include code to 16x8 LED matrix
-//#define MOUTH_MATRIX      // Uncomment this line to include code to 8x8 LED matrix
-#define TOUCH_SENSOR      // Uncomment this line to include code to touch sensor
-//#define NOISE_SENSOR      // Uncomment this line to include code to noise sensor
-#define ULTRASONIC_SENSOR // Uncomment this line to include code to ultrasonic sensor
-//#define BATTERY_SENSOR   // Uncomment this line to include code to battery sensor
-#define BUZZER            // Uncomment this line to include code to buzzer
-#define SERVOS            // Uncomment this line to include code to servos
-//#define FUNNY_LED         // Uncomment this line to include code to Funny led
-//#define ASSEMBLY         // Uncomment this line to include code to set in assembly mode 
+#define BLUETOOTH          // Uncomment this line to include code to Bluetooth module
+#define RADIO_FREQUENCY    // Uncomment this line to include code to legs servos
+//    #define RADIO_HEAD     // Uncomment this line if using RadioHead library
+//    #define VIRTUAL_WIRE   // Uncomment this line if using VirtualWire library
+    #define RC_SWITCH      // Uncomment this line if using rc-switch library
+//    #define RF_TRANSMITTER // Uncomment this line if using RFTransmitter
+#define EYES_MATRIX        // Uncomment this line to include code to 16x8 LED matrix
+//#define MOUTH_MATRIX       // Uncomment this line to include code to 8x8 LED matrix
+//#define TOUCH_SENSOR       // Uncomment this line to include code to touch sensor
+//#define NOISE_SENSOR       // Uncomment this line to include code to noise sensor
+//#define ULTRASONIC_SENSOR  // Uncomment this line to include code to ultrasonic sensor
+//#define BATTERY_SENSOR     // Uncomment this line to include code to battery sensor
+#define BUZZER             // Uncomment this line to include code to buzzer
+#define SERVOS             // Uncomment this line to include code to servos
+//#define FUNNY_LED          // Uncomment this line to include code to Funny led
+//#define ASSEMBLY           // Uncomment this line to include code to set in assembly mode 
 
-#include <EEPROM.h>
-#include <NewSerialCommand.h> // Library to manage serial commands
+//#include <EEPROM.h>
+#include <SerialCommand.h> // Library to manage serial commands
 #include <Otto9.h>
 #ifdef EYES_MATRIX
     #include "Adafruit_LEDBackpack.h"
@@ -270,6 +270,7 @@ void setup() {
 #ifdef EYES_MATRIX
     eyesMatrix.begin(0x70); // pass in the address
     eyesMatrix.setBrightness(0);
+    //eyesMatrix.setRotation(1);
 #endif
 
     // Assembly Mode initialization
@@ -306,7 +307,7 @@ void setup() {
     // Setup callbacks for SerialCommand to Actuators
     SCmd.addCommand("S", receiveStop);      //  sendAck & sendFinalAck
     //SCmd.addCommand("L", receiveMouth);     //  sendAck & sendFinalAck
-    //SCmd.addCommand("O", receiveEyes);      //  sendAck & sendFinalAck
+    SCmd.addCommand("O", receiveEyes);      //  sendAck & sendFinalAck
     SCmd.addCommand("T", receiveBuzzer);    //  sendAck & sendFinalAck
     SCmd.addCommand("K", receiveSing);      //  sendAck & sendFinalAck
     SCmd.addCommand("H", receiveGesture);   //  sendAck & sendFinalAck
@@ -331,7 +332,9 @@ void setup() {
     // Animation Uuuuuh - A little moment of initial surprise
     for (int i = 0; i < 2; i++) {
         for (int i = 0; i < 8; i++) {
+#ifdef MOUTH_MATRIX
             Otto.putAnimationMouth(littleUuh, i);
+#endif
             delay(150);
         }
     }
@@ -369,6 +372,19 @@ void setup() {
     }
 
 #ifdef EYES_MATRIX
+    Otto.home();
+    eyesMatrix.setTextSize(1);
+    eyesMatrix.setTextWrap(false);  // we dont want text to wrap so it scrolls nicely
+    eyesMatrix.setTextColor(LED_ON);
+    eyesMatrix.setRotation(1);
+    for (int8_t x=7; x>=-36; x--) {
+      eyesMatrix.clear();
+      eyesMatrix.setCursor(x,0);
+      eyesMatrix.print("Otto DIY");
+      eyesMatrix.writeDisplay();
+      delay(100);
+    }
+    eyesMatrix.setRotation(0);
     eyesMatrix.clear();
     eyesMatrix.drawBitmap(0, 0, +eyes_bmp, 8, 16, LED_ON);
     eyesMatrix.writeDisplay();
@@ -453,6 +469,7 @@ void receiveMouth() {
  */
 void receiveEyes() {
 #ifdef EYES_MATRIX
+    Serial.println("receiveEyes");
     // sendAck & stop if necessary
     sendAck();
     Otto.home();
@@ -460,23 +477,22 @@ void receiveEyes() {
     // O 0000000010000101001000110000000000000000000000000000000000000000
     char *arg;
     char *endstr;
+    uint8_t image_bmp[16];
     arg = SCmd.next();
+    Serial.print("arg=");
     Serial.println(arg);
     if (arg != NULL) {
-        //mouthMatrix = strtoul(arg, &endstr, 2); // Converts a char string to unsigned long integer
-#ifdef EYES_MATRIX
-        //Otto.putMouth(mouthMatrix, false);
-#endif
+        hex2dec(arg, image_bmp);
+        eyesMatrix.clear();
+        eyesMatrix.drawBitmap(0, 0, +image_bmp, 8, 16, LED_ON);
+        eyesMatrix.writeDisplay();
     } else {
-#ifdef EYES_MATRIX
-        //Otto.putMouth(xMouth);
-#endif
+        //Otto.
         delay(2000);
-#ifdef EYES_MATRIX
-        //Otto.clearMouth();
-#endif
+        //Otto.
     }
     sendFinalAck();
+    //BTserial.println("O:ACK");
 #endif
 }
 
@@ -1340,5 +1356,32 @@ bool checkIfConnected() {
         lastConnState = LOW;
     }
     return confirmedConnected;
+#endif
+}
+
+/**
+ *
+ */
+void hex2dec(char *hex, uint8_t *image_bmp) {
+#ifdef EYES_MATRIX
+    char sub[3];
+    uint8_t dec;
+    int i = 0;
+    int j = 0;
+    for (i = 0 ; i < 32; i = i + 4) {
+        sub[0] = hex[i];
+        sub[1] = hex[i + 1];
+        sub[2] = '\0';
+        dec = strtoul(sub, NULL, 16);
+        image_bmp[j++] = dec;
+        printf("Number: %s -  %d\n", sub, dec);
+    };
+    for (i = 2 ; i < 32; i = i + 4) {
+        sub[0] = hex[i];
+        sub[1] = hex[i + 1];
+        sub[2] = '\0';
+        dec = strtoul(sub, NULL, 16);
+        image_bmp[j++] = dec;
+    };
 #endif
 }

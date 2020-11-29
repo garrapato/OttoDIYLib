@@ -64,7 +64,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 #define SERIALCOMMANDBUFFER 35
-#define MAXSERIALCOMMANDS	16
+#define MAXSERIALCOMMANDS	7
 #define MAXDELIMETER 2
 
 #define SERIALCOMMANDDEBUG 1
@@ -93,7 +93,7 @@ class SerialCommand
 		char *token;                        // Returned token from the command buffer as returned by strtok_r
 		char *last;                         // State variable used by strtok_r during processing
 		typedef struct _callback {
-			char command[SERIALCOMMANDBUFFER];
+			char command[2];
 			void (*function)();
 		} SerialCommandCallback;            // Data structure to hold Command/Handler function key-value pairs
 		int numCommand;

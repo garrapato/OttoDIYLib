@@ -6,6 +6,7 @@
 
 const int NUMBER_OF_ELEMENTS = 31;
 const unsigned long int Mouthtable[NUMBER_OF_ELEMENTS] PROGMEM = {
+/*
   0b00001100010010010010010010001100, //zero_code
   0b00000100001100000100000100001110, //one_code
   0b00001100010010000100001000011110, //two_code
@@ -37,6 +38,7 @@ const unsigned long int Mouthtable[NUMBER_OF_ELEMENTS] PROGMEM = {
   0b00000100001000011100001000010000, //thunder_code
   0b00000000100001101101010010000000, //culito_code
   0b00000000011110100001100001000000  //angry_code
+*/
 } ;
 
 //Mouths sorted by numbers, and after, by happy to sad mouths
